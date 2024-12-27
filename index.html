@@ -98,6 +98,40 @@
                 opacity: 0;
             }
         }
+
+        .stats {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+        }
+
+        .friend-section, .clan-section, .referral-section {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -110,58 +144,143 @@
         <div id="clickArea" class="click-area">
             CLICK!
         </div>
+
+        <div class="friend-section">
+            <h2>Друзі</h2>
+            <input type="text" id="friendId" placeholder="Telegram ID друга">
+            <button onclick="addFriend()">Додати друга</button>
+            <div id="friendsList"></div>
+        </div>
+
+        <div class="clan-section">
+            <h2>Клан</h2>
+            <input type="text" id="clanName" placeholder="Назва клану">
+            <button onclick="createClan()">Створити клан</button>
+            <div id="clanInfo"></div>
+        </div>
+
+        <div class="referral-section">
+            <h2>Реферальна система</h2>
+            <p>Ваш реферальний код: <span id="referralCode"></span></p>
+            <input type="text" id="referralInput" placeholder="Введіть реферальний код">
+            <button onclick="useReferral()">Використати код</button>
+        </div>
     </div>
 
     <script>
         let coins = 0;
+        let friends = [];
+        let clan = null;
+        let referralCode = generateReferralCode();
 
         const coinCounter = document.getElementById('coinCount');
         const clickArea = document.getElementById('clickArea');
+        const friendsList = document.getElementById('friendsList');
+        const clanInfo = document.getElementById('clanInfo');
+        const referralCodeDisplay = document.getElementById('referralCode');
 
-        function createParticle(x, y) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.innerHTML = '+1';
-            particle.style.left = x + 'px';
-            particle.style.top = y + 'px';
-            
-            // Random direction
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 100;
-            const tx = Math.cos(angle) * distance;
-            const ty = Math.sin(angle) * distance;
-            
-            particle.style.setProperty('--tx', `${tx}px`);
-            particle.style.setProperty('--ty', `${ty}px`);
-            
-            document.body.appendChild(particle);
-            
-            // Remove particle after animation
-            setTimeout(() => {
-                particle.remove();
-            }, 1000);
+        // Генерація реферального коду
+        function generateReferralCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
+        // Збереження прогресу
+        function saveProgress() {
+            localStorage.setItem('coins', coins);
+            localStorage.setItem('friends', JSON.stringify(friends));
+            localStorage.setItem('clan', JSON.stringify(clan));
+            localStorage.setItem('referralCode', referralCode);
+        }
+
+        // Завантаження прогресу
+        function loadProgress() {
+            coins = parseInt(localStorage.getItem('coins')) || 0;
+            friends = JSON.parse(localStorage.getItem('friends')) || [];
+            clan = JSON.parse(localStorage.getItem('clan')) || null;
+            referralCode = localStorage.getItem('referralCode') || generateReferralCode();
+
+            coinCounter.textContent = coins;
+            updateFriendsList();
+            updateClanInfo();
+            referralCodeDisplay.textContent = referralCode;
+        }
+
+        // Оновлення списку друзів
+        function updateFriendsList() {
+            friendsList.innerHTML = friends.map(friend => `<div>${friend}</div>`).join('');
+        }
+
+        // Оновлення інформації про клан
+        function updateClanInfo() {
+            if (clan) {
+                clanInfo.innerHTML = `<div>Назва клану: ${clan.name}</div><div>Учасники: ${clan.members.join(', ')}</div>`;
+            } else {
+                clanInfo.innerHTML = '';
+            }
+        }
+
+        // Додавання друга
+        function addFriend() {
+            const friendId = document.getElementById('friendId').value;
+            if (friendId && !friends.includes(friendId)) {
+                friends.push(friendId);
+                updateFriendsList();
+                saveProgress();
+                alert('Друга додано!');
+            } else {
+                alert('Невірний ID або друг вже доданий.');
+            }
+        }
+
+        // Створення клану
+        function createClan() {
+            const clanName = document.getElementById('clanName').value;
+            if (clanName && !clan) {
+                clan = { name: clanName, members: [] };
+                updateClanInfo();
+                saveProgress();
+                alert('Клан створено!');
+            } else {
+                alert('Невірна назва клану або клан вже створений.');
+            }
+        }
+
+        // Використання реферального коду
+        function useReferral() {
+            const code = document.getElementById('referralInput').value;
+            if (code) {
+                alert(`Використано реферальний код: ${code}`);
+                // Тут можна додати логіку для нарахування бонусів
+            } else {
+                alert('Введіть реферальний код.');
+            }
+        }
+
+        // Клікер
         clickArea.addEventListener('click', (e) => {
             coins++;
             coinCounter.textContent = coins;
+            saveProgress();
 
-            // Create particle effect
+            // Створення частинки
             const rect = clickArea.getBoundingClientRect();
             const x = e.clientX;
             const y = e.clientY;
             createParticle(x, y);
 
-            // Visual feedback
+            // Візуальний ефект
             clickArea.style.transform = 'scale(0.95)';
             setTimeout(() => {
                 clickArea.style.transform = 'scale(1)';
             }, 100);
         });
 
-        // Initialize Telegram WebApp
+        // Ініціалізація Telegram WebApp
         window.Telegram.WebApp.ready();
         window.Telegram.WebApp.expand();
+
+        // Завантаження прогресу при старті
+        loadProgress();
     </script>
 </body>
 </html>
