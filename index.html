@@ -68,129 +68,99 @@
             font-size: 40px;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            transition: transform 0.1s;
+            transition: transform 0.1s, background-color 0.3s; /* Added transition for background color */
+        }
+
+        .click-area:hover {
+           background-color: rgba(255,255,255,0.2); /* Change on hover */
         }
 
         .click-area:active {
-            transform: scale(0.95);
+           transform: scale(0.95);
         }
 
         @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+           0% { transform: scale(1); }
+           50% { transform: scale(1.1); }
+           100% { transform: scale(1); }
         }
 
         .particle {
-            position: absolute;
-            pointer-events: none;
-            animation: particleAnimation 1s ease-out forwards;
+           position: absolute;
+           pointer-events: none;
+           animation: particleAnimation 1s ease-out forwards; 
         }
 
         @keyframes particleAnimation {
-            0% {
-                transform: translate(0, 0) scale(1);
-                opacity: 1;
-            }
-            100% {
-                transform: translate(var(--tx), var(--ty)) scale(0);
-                opacity: 0;
-            }
-        }
-
-        .stats {
-            margin-top: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 15px;
+           0% {
+               transform: translate(0, 0) scale(1);
+               opacity: 1; 
+           }
+           100% {
+               transform: translate(var(--tx), var(--ty)) scale(0);
+               opacity: 0; 
+           }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="coin-display">
-            <div class="coin-icon">Y</div>
-            <span id="coinCount">0</span>
-        </div>
+           <div class="coin-icon">Y</div>
+           <span id="coinCount">0</span>
+       </div>
 
-        <div id="clickArea" class="click-area">
-            CLICK!
-        </div>
+       <div id="clickArea" class="click-area">
+           CLICK!
+       </div>
+   </div>
 
-        <div class="stats">
-            Clicks per second: <span id="cps">0</span>
-        </div>
-    </div>
+   <script>
+       let coins = 0;
 
-    <script>
-        let coins = 0;
-        let clicks = 0;
-        let lastClick = Date.now();
-        let clickTimes = [];
+       const coinCounter = document.getElementById('coinCount');
+       const clickArea = document.getElementById('clickArea');
 
-        const coinCounter = document.getElementById('coinCount');
-        const clickArea = document.getElementById('clickArea');
-        const cpsDisplay = document.getElementById('cps');
+       function createParticle(x, y) {
+           const particle = document.createElement('div');
+           particle.className = 'particle';
+           particle.innerHTML = '+1';
+           particle.style.left = x + 'px';
+           particle.style.top = y + 'px';
+           
+           const angle = Math.random() * Math.PI * 2; 
+           const distance = Math.random() * (100 - 50) + 50; // Random distance between 50 and 100
+           const tx = Math.cos(angle) * distance; 
+           const ty = Math.sin(angle) * distance; 
 
-        function createParticle(x, y) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.innerHTML = '+1';
-            particle.style.left = x + 'px';
-            particle.style.top = y + 'px';
-            
-            // Random direction
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 100;
-            const tx = Math.cos(angle) * distance;
-            const ty = Math.sin(angle) * distance;
-            
-            particle.style.setProperty('--tx', `${tx}px`);
-            particle.style.setProperty('--ty', `${ty}px`);
-            
-            document.body.appendChild(particle);
-            
-            // Remove particle after animation
-            setTimeout(() => {
-                particle.remove();
-            }, 1000);
-        }
+           particle.style.setProperty('--tx', `${tx}px`); 
+           particle.style.setProperty('--ty', `${ty}px`); 
+           
+           document.body.appendChild(particle);
 
-        function updateCPS() {
-            const now = Date.now();
-            clickTimes = clickTimes.filter(time => now - time < 1000);
-            const cps = clickTimes.length;
-            cpsDisplay.textContent = cps;
-        }
+           setTimeout(() => { 
+               particle.remove(); 
+           }, 1000); 
+       }
 
-        clickArea.addEventListener('click', (e) => {
-            coins++;
-            clicks++;
-            coinCounter.textContent = coins;
-            
-            // Add click timestamp
-            clickTimes.push(Date.now());
-            updateCPS();
+       clickArea.addEventListener('click', (e) => {
+           coins++;
+           coinCounter.textContent = coins;
 
-            // Create particle effect
-            const rect = clickArea.getBoundingClientRect();
-            const x = e.clientX;
-            const y = e.clientY;
-            createParticle(x, y);
+           const rect = clickArea.getBoundingClientRect();
+           const x = e.clientX - rect.left; // Adjusted to get position relative to click area
+           const y = e.clientY - rect.top; // Adjusted to get position relative to click area
+           
+           createParticle(x, y);
 
-            // Visual feedback
-            clickArea.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                clickArea.style.transform = 'scale(1)';
-            }, 100);
-        });
+           clickArea.style.transform = 'scale(0.95)';
+           setTimeout(() => { 
+               clickArea.style.transform = 'scale(1)';
+           }, 100);
+       });
 
-        // Update CPS display periodically
-        setInterval(updateCPS, 100);
-
-        // Initialize Telegram WebApp
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
-    </script>
+       window.Telegram.WebApp.ready(); 
+       window.Telegram.WebApp.expand(); 
+   </script>
 </body>
 </html>
