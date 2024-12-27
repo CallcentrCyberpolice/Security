@@ -50,7 +50,6 @@
         .coin-icon {
             width: 40px;
             height: 40px;
-            background: gold;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -137,7 +136,7 @@
             display: block;
         }
 
-        .friend-list, .clan-info, .settings, .tasks {
+        .friend-list, .clan-info, .settings, .tasks, .skins {
             background: rgba(255, 255, 255, 0.1);
             padding: 15px;
             border-radius: 15px;
@@ -183,6 +182,27 @@
         }
 
         .task-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .skin-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .skin-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .skin-button:disabled {
             background: #ccc;
             cursor: not-allowed;
         }
@@ -242,6 +262,25 @@
                 </div>
             </div>
         </div>
+
+        <!-- Скіни -->
+        <div id="skinsSection" class="section">
+            <h2>Скіни</h2>
+            <div class="skins">
+                <div class="skin-item">
+                    <span>Золота монета</span>
+                    <button class="skin-button" onclick="changeSkin('gold')">Обрати</button>
+                </div>
+                <div class="skin-item">
+                    <span>Срібна монета</span>
+                    <button class="skin-button" onclick="changeSkin('silver')">Обрати</button>
+                </div>
+                <div class="skin-item">
+                    <span>Бронзова монета</span>
+                    <button class="skin-button" onclick="changeSkin('bronze')">Обрати</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Навігація -->
@@ -251,6 +290,7 @@
         <button onclick="showSection('clanSection')">Клан</button>
         <button onclick="showSection('settingsSection')">Налаштування</button>
         <button onclick="showSection('tasksSection')">Завдання</button>
+        <button onclick="showSection('skinsSection')">Скіни</button>
     </div>
 
     <script>
@@ -258,6 +298,7 @@
         let friends = [];
         let clan = null;
         let referralCode = generateReferralCode();
+        let currentSkin = 'gold';
 
         const coinCounter = document.getElementById('coinCount');
         const clickArea = document.getElementById('clickArea');
@@ -276,6 +317,7 @@
             localStorage.setItem('friends', JSON.stringify(friends));
             localStorage.setItem('clan', JSON.stringify(clan));
             localStorage.setItem('referralCode', referralCode);
+            localStorage.setItem('currentSkin', currentSkin);
         }
 
         // Завантаження прогресу
@@ -284,11 +326,13 @@
             friends = JSON.parse(localStorage.getItem('friends')) || [];
             clan = JSON.parse(localStorage.getItem('clan')) || null;
             referralCode = localStorage.getItem('referralCode') || generateReferralCode();
+            currentSkin = localStorage.getItem('currentSkin') || 'gold';
 
             coinCounter.textContent = coins;
             updateFriendsList();
             updateClanInfo();
             referralLink.textContent = `https://t.me/your_bot_username?start=${referralCode}`;
+            updateSkin();
         }
 
         // Оновлення списку друзів
@@ -319,8 +363,27 @@
         }
 
         // Зміна скіну монети
-        function changeSkin() {
-            alert("Функція зміни скіну монети в розробці!");
+        function changeSkin(skin) {
+            currentSkin = skin;
+            updateSkin();
+            saveProgress();
+            alert(`Скін змінено на ${skin}`);
+        }
+
+        // Оновлення скіну монети
+        function updateSkin() {
+            const coinIcon = document.querySelector('.coin-icon');
+            switch (currentSkin) {
+                case 'gold':
+                    coinIcon.style.background = 'radial-gradient(circle, #ffd700 0%, #ffa500 100%)';
+                    break;
+                case 'silver':
+                    coinIcon.style.background = 'radial-gradient(circle, #c0c0c0 0%, #808080 100%)';
+                    break;
+                case 'bronze':
+                    coinIcon.style.background = 'radial-gradient(circle, #cd7f32 0%, #8b4513 100%)';
+                    break;
+            }
         }
 
         // Виконання завдання
