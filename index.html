@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yescoin</title>
+    <title>Yescoin Miner</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            user-select: none; /* Заборона копіювання тексту */
         }
 
         body {
@@ -21,7 +20,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
         }
 
         .container {
@@ -29,10 +27,6 @@
             max-width: 600px;
             padding: 20px;
             text-align: center;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
         }
 
         .coin-display {
@@ -50,6 +44,7 @@
         .coin-icon {
             width: 40px;
             height: 40px;
+            background: gold;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -103,322 +98,99 @@
             }
         }
 
-        .navigation {
-            display: flex;
-            justify-content: space-around;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            border-radius: 15px 15px 0 0;
-            width: 100%;
-            max-width: 600px;
-        }
-
-        .navigation button {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            padding: 10px;
-            transition: color 0.3s;
-        }
-
-        .navigation button:hover {
-            color: #ffd700;
-        }
-
-        .section {
-            display: none;
+        .stats {
             margin-top: 20px;
-        }
-
-        .section.active {
-            display: block;
-        }
-
-        .friend-list, .clan-info, .settings, .tasks, .skins {
             background: rgba(255, 255, 255, 0.1);
             padding: 15px;
             border-radius: 15px;
-            margin-top: 20px;
-        }
-
-        .friend-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .friend-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #ccc;
-        }
-
-        .referral-link {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            border-radius: 10px;
-            margin-top: 10px;
-            word-break: break-all;
-        }
-
-        .task-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .task-button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .task-button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .skin-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .skin-button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .skin-button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Клікер -->
-        <div id="clickerSection" class="section active">
-            <div class="coin-display">
-                <div class="coin-icon">Y</div>
-                <span id="coinCount">0</span>
-            </div>
-            <div id="clickArea" class="click-area">
-                CLICK!
-            </div>
+        <div class="coin-display">
+            <div class="coin-icon">Y</div>
+            <span id="coinCount">0</span>
         </div>
 
-        <!-- Друзі та реферали -->
-        <div id="friendsSection" class="section">
-            <h2>Друзі та реферали</h2>
-            <div class="friend-list" id="friendsList">
-                <!-- Друзі будуть додаватися тут -->
-            </div>
-            <div class="referral-link">
-                Ваше реферальне посилання: <span id="referralLink"></span>
-            </div>
+        <div id="clickArea" class="click-area">
+            CLICK!
         </div>
 
-        <!-- Клан -->
-        <div id="clanSection" class="section">
-            <h2>Клан</h2>
-            <div class="clan-info" id="clanInfo">
-                <!-- Інформація про клан буде тут -->
-            </div>
+        <div class="stats">
+            Clicks per second: <span id="cps">0</span>
         </div>
-
-        <!-- Налаштування -->
-        <div id="settingsSection" class="section">
-            <h2>Налаштування</h2>
-            <div class="settings">
-                <button onclick="changeSkin()">Змінити скін монети</button>
-            </div>
-        </div>
-
-        <!-- Завдання -->
-        <div id="tasksSection" class="section">
-            <h2>Завдання</h2>
-            <div class="tasks">
-                <div class="task-item">
-                    <span>Зробити 100 кліків</span>
-                    <button class="task-button" onclick="completeTask(100)">Виконати</button>
-                </div>
-                <div class="task-item">
-                    <span>Запросити 5 друзів</span>
-                    <button class="task-button" onclick="completeTask(5)">Виконати</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Скіни -->
-        <div id="skinsSection" class="section">
-            <h2>Скіни</h2>
-            <div class="skins">
-                <div class="skin-item">
-                    <span>Золота монета</span>
-                    <button class="skin-button" onclick="changeSkin('gold')">Обрати</button>
-                </div>
-                <div class="skin-item">
-                    <span>Срібна монета</span>
-                    <button class="skin-button" onclick="changeSkin('silver')">Обрати</button>
-                </div>
-                <div class="skin-item">
-                    <span>Бронзова монета</span>
-                    <button class="skin-button" onclick="changeSkin('bronze')">Обрати</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Навігація -->
-    <div class="navigation">
-        <button onclick="showSection('clickerSection')">Клікер</button>
-        <button onclick="showSection('friendsSection')">Друзі</button>
-        <button onclick="showSection('clanSection')">Клан</button>
-        <button onclick="showSection('settingsSection')">Налаштування</button>
-        <button onclick="showSection('tasksSection')">Завдання</button>
-        <button onclick="showSection('skinsSection')">Скіни</button>
     </div>
 
     <script>
         let coins = 0;
-        let friends = [];
-        let clan = null;
-        let referralCode = generateReferralCode();
-        let currentSkin = 'gold';
+        let clicks = 0;
+        let lastClick = Date.now();
+        let clickTimes = [];
 
         const coinCounter = document.getElementById('coinCount');
         const clickArea = document.getElementById('clickArea');
-        const friendsList = document.getElementById('friendsList');
-        const clanInfo = document.getElementById('clanInfo');
-        const referralLink = document.getElementById('referralLink');
+        const cpsDisplay = document.getElementById('cps');
 
-        // Генерація реферального коду
-        function generateReferralCode() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        function createParticle(x, y) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.innerHTML = '+1';
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
+            
+            // Random direction
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 100;
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+            
+            particle.style.setProperty('--tx', `${tx}px`);
+            particle.style.setProperty('--ty', `${ty}px`);
+            
+            document.body.appendChild(particle);
+            
+            // Remove particle after animation
+            setTimeout(() => {
+                particle.remove();
+            }, 1000);
         }
 
-        // Збереження прогресу
-        function saveProgress() {
-            localStorage.setItem('coins', coins);
-            localStorage.setItem('friends', JSON.stringify(friends));
-            localStorage.setItem('clan', JSON.stringify(clan));
-            localStorage.setItem('referralCode', referralCode);
-            localStorage.setItem('currentSkin', currentSkin);
+        function updateCPS() {
+            const now = Date.now();
+            clickTimes = clickTimes.filter(time => now - time < 1000);
+            const cps = clickTimes.length;
+            cpsDisplay.textContent = cps;
         }
 
-        // Завантаження прогресу
-        function loadProgress() {
-            coins = parseInt(localStorage.getItem('coins')) || 0;
-            friends = JSON.parse(localStorage.getItem('friends')) || [];
-            clan = JSON.parse(localStorage.getItem('clan')) || null;
-            referralCode = localStorage.getItem('referralCode') || generateReferralCode();
-            currentSkin = localStorage.getItem('currentSkin') || 'gold';
-
-            coinCounter.textContent = coins;
-            updateFriendsList();
-            updateClanInfo();
-            referralLink.textContent = `https://t.me/your_bot_username?start=${referralCode}`;
-            updateSkin();
-        }
-
-        // Оновлення списку друзів
-        function updateFriendsList() {
-            friendsList.innerHTML = friends.map(friend => `
-                <div class="friend-item">
-                    <div class="friend-avatar"></div>
-                    <div>${friend}</div>
-                </div>
-            `).join('');
-        }
-
-        // Оновлення інформації про клан
-        function updateClanInfo() {
-            if (clan) {
-                clanInfo.innerHTML = `<div>Назва клану: ${clan.name}</div><div>Учасники: ${clan.members.join(', ')}</div>`;
-            } else {
-                clanInfo.innerHTML = '';
-            }
-        }
-
-        // Показ розділу
-        function showSection(sectionId) {
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.remove('active');
-            });
-            document.getElementById(sectionId).classList.add('active');
-        }
-
-        // Зміна скіну монети
-        function changeSkin(skin) {
-            currentSkin = skin;
-            updateSkin();
-            saveProgress();
-            alert(`Скін змінено на ${skin}`);
-        }
-
-        // Оновлення скіну монети
-        function updateSkin() {
-            const coinIcon = document.querySelector('.coin-icon');
-            switch (currentSkin) {
-                case 'gold':
-                    coinIcon.style.background = 'radial-gradient(circle, #ffd700 0%, #ffa500 100%)';
-                    break;
-                case 'silver':
-                    coinIcon.style.background = 'radial-gradient(circle, #c0c0c0 0%, #808080 100%)';
-                    break;
-                case 'bronze':
-                    coinIcon.style.background = 'radial-gradient(circle, #cd7f32 0%, #8b4513 100%)';
-                    break;
-            }
-        }
-
-        // Виконання завдання
-        function completeTask(reward) {
-            coins += reward;
-            coinCounter.textContent = coins;
-            saveProgress();
-            alert(`Ви отримали ${reward} монет!`);
-        }
-
-        // Клікер
         clickArea.addEventListener('click', (e) => {
             coins++;
+            clicks++;
             coinCounter.textContent = coins;
-            saveProgress();
+            
+            // Add click timestamp
+            clickTimes.push(Date.now());
+            updateCPS();
 
-            // Створення частинки
+            // Create particle effect
             const rect = clickArea.getBoundingClientRect();
             const x = e.clientX;
             const y = e.clientY;
             createParticle(x, y);
 
-            // Візуальний ефект
+            // Visual feedback
             clickArea.style.transform = 'scale(0.95)';
             setTimeout(() => {
                 clickArea.style.transform = 'scale(1)';
             }, 100);
         });
 
-        // Ініціалізація Telegram WebApp
+        // Update CPS display periodically
+        setInterval(updateCPS, 100);
+
+        // Initialize Telegram WebApp
         window.Telegram.WebApp.ready();
         window.Telegram.WebApp.expand();
-
-        // Завантаження прогресу при старті
-        loadProgress();
     </script>
 </body>
 </html>
