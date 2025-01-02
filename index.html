@@ -6,7 +6,123 @@
     <title>CoinGame - Реферальна система</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* ... (попередні стилі залишаються без змін) ... */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background-color: #2d2d2d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .referral-link {
+            background-color: #3a3a3a;
+            padding: 15px;
+            border-radius: 8px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        
+        .copy-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .copy-button:hover {
+            background-color: #45a049;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background-color: #3a3a3a;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #999;
+        }
+        
+        .referral-list {
+            margin-top: 20px;
+        }
+        
+        .referral-item {
+            background-color: #3a3a3a;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .referral-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #ffffff;
+            font-size: 20px;
+        }
+
+        /* Адаптивність для малих екранів */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .stats {
+                gap: 10px;
+            }
+            
+            .stat-value {
+                font-size: 20px;
+            }
+            
+            .stat-label {
+                font-size: 12px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -49,6 +165,16 @@
             // Використовуємо правильне ім'я бота
             document.getElementById('referralLink').textContent = 
                 `https://t.me/SHORTILINKbot?start=${userId}`;
+            
+            // Тут можна додати запит до вашого API для отримання статистики
+            // Наприклад:
+            // fetch('/api/stats?userId=' + userId)
+            //     .then(response => response.json())
+            //     .then(data => {
+            //         document.getElementById('referralCount').textContent = data.referralCount;
+            //         document.getElementById('totalEarnings').textContent = data.earnings;
+            //         updateReferralList(data.referrals);
+            //     });
         }
         
         // Функція для копіювання реферального посилання
@@ -59,8 +185,39 @@
             });
         }
         
+        // Функція для оновлення списку рефералів
+        function updateReferralList(referrals) {
+            const referralList = document.getElementById('referralList');
+            referralList.innerHTML = '';
+            
+            if (referrals && referrals.length > 0) {
+                referrals.forEach(referral => {
+                    const referralItem = document.createElement('div');
+                    referralItem.className = 'referral-item';
+                    referralItem.innerHTML = `
+                        <div class="referral-avatar">
+                            <img src="${referral.avatar || '/placeholder.png'}" alt="Avatar" width="40" height="40">
+                        </div>
+                        <div>
+                            <div>${referral.username}</div>
+                            <div style="color: #999; font-size: 12px;">Приєднався: ${referral.joinDate}</div>
+                        </div>
+                    `;
+                    referralList.appendChild(referralItem);
+                });
+            } else {
+                referralList.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">У вас поки немає рефералів</div>';
+            }
+        }
+        
         // Завантаження даних при старті
         document.addEventListener('DOMContentLoaded', loadUserData);
+        
+        // Оновлення теми при зміні
+        tg.onEvent('themeChanged', function() {
+            document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
+            document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
+        });
     </script>
 </body>
 </html>
