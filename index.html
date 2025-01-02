@@ -3,357 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yescoin Miner</title>
+    <title>CoinGame - Реферальна система</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             font-family: Arial, sans-serif;
-            color: white;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            -webkit-user-select: none; /* Safari */
-            -ms-user-select: none; /* IE 10+ and Edge */
-            user-select: none; /* Standard syntax */
-        }
-
-        .container {
-            width: 100%;
-            max-width: 600px;
+            margin: 0;
             padding: 20px;
-            text-align: center;
-        }
-
-        .coin-display {
-            font-size: 24px;
-            margin: 20px 0;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 15px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .coin-icon {
-            width: 40px;
-            height: 40px;
-            background: gold;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 20px;
-            animation: pulse 2s infinite;
-        }
-
-        .coin-slider {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            margin: 30px auto;
-            overflow: hidden;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .coin-wrapper {
-            display: flex;
-            transition: transform 0.3s ease-in-out;
-        }
-
-        .click-area {
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            cursor: pointer;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 40px;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            transition: transform 0.1s;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-
-        .click-area:active {
-            transform: scale(0.95);
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-
-        .particle {
-            position: absolute;
-            pointer-events: none;
-            animation: particleAnimation 1s ease-out forwards;
-        }
-
-        @keyframes particleAnimation {
-            0% {
-                transform: translate(0, 0) scale(1);
-                opacity: 1;
-            }
-            100% {
-                transform: translate(var(--tx), var(--ty)) scale(0);
-                opacity: 0;
-            }
-        }
-
-        .stats {
-            margin-top: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 15px;
-        }
-
-        .skin {
-            width: 200px;
-            height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-        }
-
-        .skin.skin-gold {
-            background: radial-gradient(circle, #ffd700 0%, #ffa500 100%);
-        }
-
-        .skin.skin-red {
-            background: radial-gradient(circle, #ff4d4d 0%, #cc0000 100%);
-        }
-        .skin.skin-blue {
-             background: radial-gradient(circle, #4d88ff 0%, #0000cc 100%);
-        }
-        .skin.skin-green {
-             background: radial-gradient(circle, #4dff88 0%, #00cc00 100%);
-        }
-
-        .skin-button {
-          background-color: #4CAF50; /* Green */
-          border: none;
-          color: white;
-          padding: 10px 20px;
-          text-align: center;
-          text-decoration: none;
-          display: inline-block;
-          font-size: 16px;
-          margin: 4px 2px;
-          cursor: pointer;
-          border-radius: 4px;
-        }
-
-        .skin-button:disabled {
-          background-color: gray;
-          cursor: not-allowed;
+            background-color: #1a1a1a;
+            color: #ffffff;
         }
         
-        .skin-controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 10px;
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
         }
-
+        
+        .card {
+            background-color: #2d2d2d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .referral-link {
+            background-color: #3a3a3a;
+            padding: 15px;
+            border-radius: 8px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        
+        .copy-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .copy-button:hover {
+            background-color: #45a049;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background-color: #3a3a3a;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #999;
+        }
+        
+        .referral-list {
+            margin-top: 20px;
+        }
+        
+        .referral-item {
+            background-color: #3a3a3a;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .referral-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="coin-display">
-            <div class="coin-icon">Y</div>
-            <span id="coinCount">0</span>
+        <div class="card">
+            <h2>Ваше реферальне посилання</h2>
+            <div class="referral-link" id="referralLink"></div>
+            <button class="copy-button" onclick="copyReferralLink()">Копіювати посилання</button>
         </div>
-
-        <div class="coin-slider">
-            <div id="coinWrapper" class="coin-wrapper">
-                <div class="skin skin-gold">
-                    <div id="clickArea" class="click-area">CLICK!</div>
+        
+        <div class="card">
+            <h2>Статистика</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="referralCount">0</div>
+                    <div class="stat-label">Запрошених друзів</div>
                 </div>
-                <div class="skin skin-red">
-                    <div id="clickAreaRed" class="click-area">CLICK!</div>
-                </div>
-                <div class="skin skin-blue">
-                     <div id="clickAreaBlue" class="click-area">CLICK!</div>
-                 </div>
-                <div class="skin skin-green">
-                    <div id="clickAreaGreen" class="click-area">CLICK!</div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalEarnings">0</div>
+                    <div class="stat-label">Зароблено монет</div>
                 </div>
             </div>
         </div>
         
-        <div class="skin-controls">
-            <button id="prevSkin" class="skin-button">Previous</button>
-            <button id="nextSkin" class="skin-button">Next</button>
-            <button id="buySkin" class="skin-button" disabled>Buy Skin</button>
-        </div>
-        
-
-        <div class="stats">
-            Clicks per second: <span id="cps">0</span>
+        <div class="card">
+            <h2>Ваші реферали</h2>
+            <div class="referral-list" id="referralList">
+                <!-- Реферали будуть додані через JavaScript -->
+            </div>
         </div>
     </div>
 
     <script>
-        let coins = 0;
-        let clicks = 0;
-        let lastClick = Date.now();
-        let clickTimes = [];
-        let currentSkinIndex = 0;
-        const skinPrices = [0, 100, 200, 300];
-         let ownedSkins = [true, false, false, false];
-
-        const coinCounter = document.getElementById('coinCount');
-        const coinWrapper = document.getElementById('coinWrapper');
-        const cpsDisplay = document.getElementById('cps');
-        const prevSkinBtn = document.getElementById('prevSkin');
-        const nextSkinBtn = document.getElementById('nextSkin');
-        const buySkinBtn = document.getElementById('buySkin');
-         let clickArea = document.getElementById('clickArea');
-         let currentSkin = document.querySelector('.skin-gold');
-         
-        function createParticle(x, y) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.innerHTML = '+1';
-            particle.style.left = x + 'px';
-            particle.style.top = y + 'px';
-            
-            // Random direction
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 100;
-            const tx = Math.cos(angle) * distance;
-            const ty = Math.sin(angle) * distance;
-            
-            particle.style.setProperty('--tx', `${tx}px`);
-            particle.style.setProperty('--ty', `${ty}px`);
-            
-            document.body.appendChild(particle);
-            
-            // Remove particle after animation
-            setTimeout(() => {
-                particle.remove();
-            }, 1000);
-        }
-
-        function updateCPS() {
-            const now = Date.now();
-            clickTimes = clickTimes.filter(time => now - time < 1000);
-            const cps = clickTimes.length;
-            cpsDisplay.textContent = cps;
-        }
-
-       function updateSkinDisplay() {
-            const coinWrapper = document.getElementById('coinWrapper');
-            const skinWidth = 200; // Width of one skin
-            coinWrapper.style.transform = `translateX(-${currentSkinIndex * skinWidth}px)`;
-        }
-    
-        function updateBuyButton() {
-           if (!ownedSkins[currentSkinIndex]) {
-                buySkinBtn.disabled = false;
-                buySkinBtn.textContent = `Buy for ${skinPrices[currentSkinIndex]}`;
-            } else {
-                buySkinBtn.disabled = true;
-                buySkinBtn.textContent = 'Owned';
-            }
-         }
+        let tg = window.Telegram.WebApp;
+        tg.expand();
         
-          function buySkin() {
-                if (coins >= skinPrices[currentSkinIndex]) {
-                    coins -= skinPrices[currentSkinIndex];
-                    ownedSkins[currentSkinIndex] = true;
-                    coinCounter.textContent = coins;
-                    updateBuyButton();
-                    
-                    // Disable click on unowned skins
-                   let clickAreaElement;
-                    switch (currentSkinIndex) {
-                    case 0:
-                            clickAreaElement = document.getElementById('clickArea');
-                        break;
-                    case 1:
-                            clickAreaElement = document.getElementById('clickAreaRed');
-                        break;
-                    case 2:
-                            clickAreaElement = document.getElementById('clickAreaBlue');
-                       break;
-                     case 3:
-                           clickAreaElement = document.getElementById('clickAreaGreen');
-                       break;
-                    }
-                    
-                   clickAreaElement.addEventListener('click', handleClick, {once: false});
-                }
-             }
-
-
-        function handleClick(e) {
-            coins++;
-            clicks++;
-            coinCounter.textContent = coins;
-
-            clickTimes.push(Date.now());
-            updateCPS();
-
-            const rect = currentSkin.getBoundingClientRect();
-           const x = e.clientX;
-           const y = e.clientY;
-           createParticle(x, y);
-
-
-             currentSkin.style.transform = 'scale(0.95)';
-           setTimeout(() => {
-              currentSkin.style.transform = 'scale(1)';
-              }, 100);
-             }
-
-        prevSkinBtn.addEventListener('click', () => {
-            if (currentSkinIndex > 0) {
-                 currentSkinIndex--;
-                 updateSkinDisplay();
-                 updateBuyButton();
-             }
-         });
-
-
-        nextSkinBtn.addEventListener('click', () => {
-            if (currentSkinIndex < 3) {
-              currentSkinIndex++;
-              updateSkinDisplay();
-              updateBuyButton();
-            }
-         });
-         
-        buySkinBtn.addEventListener('click', buySkin);
-
-        // Initial setup
-         updateSkinDisplay();
-         updateBuyButton();
-         
-         clickArea.addEventListener('click', handleClick);
-
-        // Update CPS display periodically
-        setInterval(updateCPS, 100);
-
-        // Initialize Telegram WebApp
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
+        // Функція для отримання даних користувача
+        function loadUserData() {
+            // В реальному додатку тут буде запит до вашого API
+            const userId = tg.initDataUnsafe.user.id;
+            document.getElementById('referralLink').textContent = 
+                `https://t.me/${tg.initDataUnsafe.user.username}?start=${userId}`;
+        }
+        
+        // Функція для копіювання реферального посилання
+        function copyReferralLink() {
+            const link = document.getElementById('referralLink').textContent;
+            navigator.clipboard.writeText(link).then(() => {
+                tg.showAlert('Посилання скопійовано!');
+            });
+        }
+        
+        // Завантаження даних при старті
+        document.addEventListener('DOMContentLoaded', loadUserData);
+        
+        // Оновлення теми
+        tg.onEvent('themeChanged', function() {
+            document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
+            document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
+        });
     </script>
 </body>
 </html>
