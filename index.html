@@ -1,136 +1,55 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoinGame - Реферальна система</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Referral Dashboard</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #1a1a1a;
-            color: #ffffff;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .card {
-            background-color: #2d2d2d;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .referral-link {
-            background-color: #3a3a3a;
-            padding: 15px;
-            border-radius: 8px;
-            word-break: break-all;
-            margin: 10px 0;
-        }
-        .copy-button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-top: 10px;
-            width: 100%;
-        }
-        .stats, .referral-list {
-            margin-top: 20px;
-        }
-        .referral-item {
-            display: flex;
-            align-items: center;
-            background-color: #3a3a3a;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 8px;
-        }
-        .referral-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 10px;
-            background-color: #444;
-        }
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #4CAF50;
-        }
-        h2 {
-            margin-top: 0;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #4CAF50; }
+        ul { padding-left: 20px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h2>Ваше реферальне посилання</h2>
-            <div class="referral-link" id="referralLink"></div>
-            <button class="copy-button" onclick="copyReferralLink()">Копіювати посилання</button>
-        </div>
-        <div class="card">
-            <h2>Ваші реферали</h2>
-            <div class="referral-list" id="referralList">
-                <p>Завантаження...</p>
-            </div>
-        </div>
-    </div>
+    <h1>Referral Dashboard</h1>
+    <p><strong>Your ID:</strong> <span id="userId">Loading...</span></p>
+    <p><strong>Referred by:</strong> <span id="referrerId">None</span></p>
+    <h2>Your Referrals</h2>
+    <ul id="referralList"></ul>
+
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        // Зчитуємо параметри з URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get("user_id");
+        const username = urlParams.get("username") || "Unknown";
+        const referrerId = urlParams.get("referrer_id");
 
-        function loadUserData() {
-            const userId = tg.initDataUnsafe.user.id;
-            const username = tg.initDataUnsafe.user.username || 'Unknown';
-            document.getElementById('referralLink').textContent = 
-                `https://t.me/SHORTILINKbot?start=${userId}`;
-            fetch(`https://your-api-url.com/referrals?userId=${userId}`)
-                .then(response => response.json())
-                .then(data => {
-                    updateReferralList(data.referrals);
-                })
-                .catch(() => {
-                    document.getElementById('referralList').innerHTML = '<p>Помилка завантаження</p>';
-                });
-        }
+        // Зберігаємо дані в localStorage
+        const userData = JSON.parse(localStorage.getItem("referralData")) || {};
+        
+        // Ініціалізуємо дані користувача
+        if (!userData[userId]) {
+            userData[userId] = { username, referrerId, referrals: [] };
 
-        function copyReferralLink() {
-            const link = document.getElementById('referralLink').textContent;
-            navigator.clipboard.writeText(link).then(() => {
-                tg.showAlert('Посилання скопійовано!');
-            });
-        }
-
-        function updateReferralList(referrals) {
-            const list = document.getElementById('referralList');
-            list.innerHTML = '';
-            if (referrals.length > 0) {
-                referrals.forEach(ref => {
-                    const item = document.createElement('div');
-                    item.className = 'referral-item';
-                    item.innerHTML = `
-                        <div class="referral-avatar"></div>
-                        <div>
-                            <div>@${ref.username}</div>
-                            <small>ID: ${ref.user_id}</small>
-                        </div>
-                    `;
-                    list.appendChild(item);
-                });
-            } else {
-                list.innerHTML = '<p>У вас поки немає рефералів</p>';
+            // Якщо є реферер, додаємо поточного користувача до його списку
+            if (referrerId && userData[referrerId]) {
+                userData[referrerId].referrals.push({ userId, username });
             }
         }
 
-        document.addEventListener('DOMContentLoaded', loadUserData);
+        // Зберігаємо оновлені дані
+        localStorage.setItem("referralData", JSON.stringify(userData));
+
+        // Оновлюємо інтерфейс
+        document.getElementById("userId").textContent = userId;
+        document.getElementById("referrerId").textContent = referrerId || "None";
+
+        const referralList = document.getElementById("referralList");
+        userData[userId].referrals.forEach(ref => {
+            const li = document.createElement("li");
+            li.textContent = `@${ref.username} (ID: ${ref.userId})`;
+            referralList.appendChild(li);
+        });
     </script>
 </body>
 </html>
