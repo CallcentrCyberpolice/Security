@@ -1,55 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Referral Dashboard</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #4CAF50; }
-        ul { padding-left: 20px; }
-    </style>
+    <title>Telegram Web App</title>
 </head>
 <body>
-    <h1>Referral Dashboard</h1>
-    <p><strong>Your ID:</strong> <span id="userId">Loading...</span></p>
-    <p><strong>Referred by:</strong> <span id="referrerId">None</span></p>
-    <h2>Your Referrals</h2>
-    <ul id="referralList"></ul>
+    <h1>Вітаємо в нашому веб-додатку!</h1>
+    <p>Ваш Telegram ID: <span id="user_id">Завантаження...</span></p>
+    <p>Ваше реферальне посилання:</p>
+    <input type="text" id="referral_link" readonly>
+    <p>Запрошено користувачів: <span id="referral_count">0</span></p>
+    <p>Ваші реферали:</p>
+    <ul id="referrals_list"></ul>
 
     <script>
-        // Зчитуємо параметри з URL
+        // Отримання параметрів з URL
         const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get("user_id");
-        const username = urlParams.get("username") || "Unknown";
-        const referrerId = urlParams.get("referrer_id");
+        const referrerId = urlParams.get('ref'); // Отримуємо referrer_id з URL
 
-        // Зберігаємо дані в localStorage
-        const userData = JSON.parse(localStorage.getItem("referralData")) || {};
-        
-        // Ініціалізуємо дані користувача
-        if (!userData[userId]) {
-            userData[userId] = { username, referrerId, referrals: [] };
+        if (referrerId) {
+            // Якщо є referrer_id, зберігаємо це в localStorage
+            const userId = referrerId;  // Це ID користувача, який зараз відкриває сайт через реферальне посилання
 
-            // Якщо є реферер, додаємо поточного користувача до його списку
-            if (referrerId && userData[referrerId]) {
-                userData[referrerId].referrals.push({ userId, username });
+            // Зберігаємо реферера в localStorage
+            if (!localStorage.getItem(userId)) {
+                const referralData = {
+                    user_id: userId,
+                    referral_count: 0,
+                    referrals: []
+                };
+                localStorage.setItem(userId, JSON.stringify(referralData));
+            }
+
+            document.getElementById('user_id').innerText = userId;
+
+            const referralLink = `https://t.me/YourBotUsername?start=${userId}`;
+            document.getElementById('referral_link').value = referralLink;
+
+            // Оновлення статистики рефералів
+            const currentReferralData = JSON.parse(localStorage.getItem(userId));
+            document.getElementById('referral_count').innerText = currentReferralData.referral_count;
+
+            const referralsList = document.getElementById('referrals_list');
+            currentReferralData.referrals.forEach(referral => {
+                const li = document.createElement('li');
+                li.textContent = `ID: ${referral.user_id}, Username: ${referral.username}`;
+                referralsList.appendChild(li);
+            });
+
+        } else {
+            alert("Реферальне посилання не знайдено.");
+        }
+
+        // Логіка для додавання нових рефералів
+        function addReferral(referrerId, newUserId, newUsername) {
+            const currentReferralData = JSON.parse(localStorage.getItem(referrerId));
+            if (currentReferralData) {
+                currentReferralData.referral_count += 1;
+                currentReferralData.referrals.push({
+                    user_id: newUserId,
+                    username: newUsername
+                });
+                localStorage.setItem(referrerId, JSON.stringify(currentReferralData));
+
+                // Оновлюємо статистику на сайті
+                document.getElementById('referral_count').innerText = currentReferralData.referral_count;
+                const referralsList = document.getElementById('referrals_list');
+                const li = document.createElement('li');
+                li.textContent = `ID: ${newUserId}, Username: ${newUsername}`;
+                referralsList.appendChild(li);
             }
         }
 
-        // Зберігаємо оновлені дані
-        localStorage.setItem("referralData", JSON.stringify(userData));
+        // Тестова функція для додавання реферала (можна реалізувати через кнопку або автоматично)
+        function simulateReferral() {
+            const newUserId = "new_user_123";  // Це може бути отримано через новий користувач
+            const newUsername = "new_user";
+            addReferral(referrerId, newUserId, newUsername);
+        }
 
-        // Оновлюємо інтерфейс
-        document.getElementById("userId").textContent = userId;
-        document.getElementById("referrerId").textContent = referrerId || "None";
-
-        const referralList = document.getElementById("referralList");
-        userData[userId].referrals.forEach(ref => {
-            const li = document.createElement("li");
-            li.textContent = `@${ref.username} (ID: ${ref.userId})`;
-            referralList.appendChild(li);
-        });
+        // Запускаємо simulateReferral для тесту
+        // Симулюємо, що новий користувач приєднався через реферальне посилання
+        simulateReferral();
     </script>
 </body>
 </html>
