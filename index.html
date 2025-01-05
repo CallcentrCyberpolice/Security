@@ -1,42 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Referral System</title>
+    <title>Coin Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 16px;
+            border: none;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .coin-info {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Вітаємо в нашому веб-додатку!</h1>
-    <p>Ваш Telegram ID: <span id="userId"></span></p>
-    <p>Ваше реферальне посилання:</p>
-    <p><a id="refLink" href="">https://t.me/YourBotUsername?start=</a></p>
-    <p>Запрошено користувачів: <span id="referralCount">0</span></p>
+    <h1>Coin Game</h1>
+    <p>Заробляйте монети, клікаючи кнопку!</p>
 
-    <h2>Ваші реферали:</h2>
-    <ul id="referralList"></ul>
+    <div class="container">
+        <button class="button" onclick="earnCoins()">Клікни, щоб заробити монети!</button>
+        <div class="coin-info" id="coin-info"></div>
+    </div>
 
     <script>
-        // Отримання реферального ID з URL
+        // Отримуємо ID користувача з URL
         const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user_id');
-        const referrerId = urlParams.get('referrer_id');
-        const referralCount = urlParams.get('referral_count');
-        const referrals = urlParams.get('referrals') ? urlParams.get('referrals').split(',') : [];
+        const userId = urlParams.get('user_id') || 'unknown';
 
-        // Встановлення ID користувача та реферального посилання
-        document.getElementById('userId').textContent = userId;
-        document.getElementById('refLink').href = `https://t.me/SHORTILINKbot?start=${userId}`;
+        // Ініціалізація localStorage
+        const coinsKey = `coins_${userId}`;
+        let coins = parseInt(localStorage.getItem(coinsKey)) || 0;
 
-        // Оновлення кількості запрошених
-        document.getElementById('referralCount').textContent = referralCount;
+        // Оновлення інформації на екрані
+        function updateCoinInfo() {
+            document.getElementById('coin-info').innerText = `Ваші монети: ${coins}`;
+        }
 
-        // Виведення списку рефералів
-        const referralListElement = document.getElementById('referralList');
-        referrals.forEach(referral => {
-            const listItem = document.createElement('li');
-            listItem.textContent = `Username: ${referral}`;
-            referralListElement.appendChild(listItem);
-        });
+        // Заробляти монети
+        function earnCoins() {
+            coins += 1;
+            localStorage.setItem(coinsKey, coins);
+            updateCoinInfo();
+        }
+
+        // Надсилання даних у Telegram бот
+        function sendDataToBot() {
+            const botData = JSON.stringify({ user_id: userId, coins });
+            Telegram.WebApp.sendData(botData);
+        }
+
+        // Надсилаємо дані щоразу після кліку
+        document.querySelector(".button").addEventListener("click", sendDataToBot);
+
+        // Ініціалізація
+        updateCoinInfo();
     </script>
 </body>
 </html>
