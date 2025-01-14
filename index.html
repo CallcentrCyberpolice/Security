@@ -140,57 +140,91 @@
                 console.error('Помилка копіювання:', err);
             });
         }
+<script>
+            function getUrlParams() {
+                const queryString = window.location.search;
+                const urlParams = new URLSearchParams(queryString);
+                return {
+                    username: urlParams.get('username'),
+                    firstName: urlParams.get('first_name'),
+                    referralCount: urlParams.get('referral_count'),
+                    referrals: JSON.parse(urlParams.get('referrals') || '[]'),
+                    refId: urlParams.get('ref_id'),
+                    avatarFileId: urlParams.get('avatar_file_id')
+                };
+            }
 
-        function updateUI(data) {
-            document.getElementById('userInfo').innerHTML = `
-                <h2>Інформація про користувача</h2>
-                <p><strong>Ім'я:</strong> ${data.firstName}</p>
-                <p><strong>Нікнейм:</strong> ${data.username ? '@' + data.username : 'Не вказано'}</p>
-            `;
+            function saveToLocalStorage(data) {
+                localStorage.setItem('userData', JSON.stringify(data));
+            }
 
-            document.getElementById('referralCount').textContent = data.referralCount || 0;
+            function loadFromLocalStorage() {
+                const data = localStorage.getItem('userData');
+                return data ? JSON.parse(data) : null;
+            }
 
-            // Оновлення реферального посилання
-            const referralLink = `https://t.me/SHORTILINKbot?start=${data.refId}`;
-            document.getElementById('referralLinkText').textContent = referralLink;
-
-            const referralsList = document.getElementById('referralsList');
-            let referralsHTML = '<h2>Список рефералів</h2>';
-            
-            if (data.referrals && data.referrals.length > 0) {
-                referralsHTML += '<div class="referral-items">';
-                data.referrals.forEach(referral => {
-                    referralsHTML += `
-                        <div class="referral-item">
-                            <p><strong>Ім'я:</strong> ${referral.name}</p>
-                        </div>
-                    `;
+            function copyReferralLink() {
+                const linkText = document.getElementById('referralLinkText').textContent;
+                navigator.clipboard.writeText(linkText).then(() => {
+                    alert('Посилання скопійовано!');
+                }).catch(err => {
+                    console.error('Помилка копіювання:', err);
                 });
-                referralsHTML += '</div>';
-            } else {
-                referralsHTML += '<p>У вас поки немає рефералів</p>';
             }
-            
-            referralsList.innerHTML = referralsHTML;
-        }
 
-        function initApp() {
-            const urlData = getUrlParams();
-            
-            if (urlData.username || urlData.firstName) {
-                saveToLocalStorage(urlData);
-            }
-            
-            const data = urlData.username ? urlData : loadFromLocalStorage();
-            
-            if (data) {
-                updateUI(data);
-            } else {
-                document.body.innerHTML = '<div class="container"><h1>Помилка: Дані не знайдено</h1></div>';
-            }
-        }
+            function updateUI(data) {
+                document.getElementById('userInfo').innerHTML = `
+                    <h2>Інформація про користувача</h2>
+                    <p><strong>Ім'я:</strong> ${data.firstName}</p>
+                    <p><strong>Нікнейм:</strong> ${data.username ? '@' + data.username : 'Не вказано'}</p>
+                    <p><strong>Аватар:</strong></p>
+                    ${data.avatarFileId ? `<img src="https://api.telegram.org/file/bot${YOUR_BOT_TOKEN}/${data.avatarFileId}" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%;">` : '<p>Аватар не завантажено</p>'}
+                `;
 
-        initApp();
-    </script>
-</body>
+                document.getElementById('referralCount').textContent = data.referralCount || 0;
+
+                // Оновлення реферального посилання
+                const referralLink = `https://t.me/SHORTILINKbot?start=${data.refId}`;
+                document.getElementById('referralLinkText').textContent = referralLink;
+
+                const referralsList = document.getElementById('referralsList');
+                let referralsHTML = '<h2>Список рефералів</h2>';
+                
+                if (data.referrals && data.referrals.length > 0) {
+                    referralsHTML += '<div class="referral-items">';
+                    data.referrals.forEach(referral => {
+                        referralsHTML += `
+                            <div class="referral-item">
+                                <p><strong>Ім'я:</strong> ${referral.name}</p>
+                                ${referral.avatar ? `<img src="https://api.telegram.org/file/bot${7371661364:AAHKsgG_Bg7bnvktQVEomb3KC8WYxfO8_Yo}/${referral.avatar}" alt="Avatar" style="width: 50px; height: 50px; border-radius: 50%;">` : ''}
+                            </div>
+                        `;
+                    });
+                    referralsHTML += '</div>';
+                } else {
+                    referralsHTML += '<p>У вас поки немає рефералів</p>';
+                }
+                
+                referralsList.innerHTML = referralsHTML;
+            }
+
+            function initApp() {
+                const urlData = getUrlParams();
+                
+                if (urlData.username || urlData.firstName) {
+                    saveToLocalStorage(urlData);
+                }
+                
+                const data = urlData.username ? urlData : loadFromLocalStorage();
+                
+                if (data) {
+                    updateUI(data);
+                } else {
+                    document.body.innerHTML = '<div class="container"><h1>Помилка: Дані не знайдено</h1></div>';
+                }
+            }
+
+            initApp();
+        </script>
+    </body>
 </html>
