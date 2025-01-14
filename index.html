@@ -51,7 +51,7 @@
                             document.getElementById('user-id').textContent = userId;
                            document.getElementById('first-name').textContent = data.first_name;
                             document.getElementById('username').textContent = data.username || "Немає";
-                            document.getElementById('referral-link').textContent =`t.me/YOUR_BOT_USERNAME?start=${userId}`;
+                            document.getElementById('referral-link').textContent =`t.me/SHORTILINKbot?start=${userId}`;
                             document.getElementById('referrer-id').textContent = data.referrer || "Немає";
                             document.getElementById('coins').textContent = data.coins;
 
@@ -99,7 +99,7 @@
 
 
         if (userId) {
-             fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates?offset=-1`) // Замініть на токен вашого бота
+             fetch(`https://api.telegram.org/bot${7371661364:AAHKsgG_Bg7bnvktQVEomb3KC8WYxfO8_Yo}/getUpdates?offset=-1`) // Замініть на токен вашого бота
                 .then(response => response.json())
                 .then(data => {
                   const updates = data.result;
