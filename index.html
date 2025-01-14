@@ -1,1 +1,189 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coin Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
 
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .user-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .referrals {
+            margin-top: 20px;
+        }
+
+        .referral-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        h1, h2 {
+            color: #1a73e8;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background: #e8f0fe;
+            border-radius: 5px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a73e8;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #5f6368;
+        }
+
+        .referral-link {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e8f0fe;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Coin Game</h1>
+        <div class="user-info" id="userInfo">
+            <h2>Інформація про користувача</h2>
+            <!-- User info will be inserted here -->
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="referralCount">0</div>
+                <div class="stat-label">Рефералів</div>
+            </div>
+        </div>
+        <div class="referral-link" id="referralLink">
+            <h2>Ваше реферальне посилання</h2>
+            <p id="referralLinkText"></p>
+        </div>
+        <div class="referrals" id="referralsList">
+            <h2>Список рефералів</h2>
+            <!-- Referrals will be inserted here -->
+        </div>
+    </div>
+
+    <script>
+        // Function to get URL parameters
+        function getUrlParams() {
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
+            return {
+                userId: urlParams.get('user_id'),
+                username: urlParams.get('username'),
+                firstName: urlParams.get('first_name'),
+                referralCount: urlParams.get('referral_count'),
+                referrals: JSON.parse(urlParams.get('referrals') || '[]')
+            };
+        }
+
+        // Function to save data to localStorage
+        function saveToLocalStorage(data) {
+            localStorage.setItem('userData', JSON.stringify(data));
+        }
+
+        // Function to load data from localStorage
+        function loadFromLocalStorage() {
+            const data = localStorage.getItem('userData');
+            return data ? JSON.parse(data) : null;
+        }
+
+        // Function to update UI
+        function updateUI(data) {
+            // Update user info
+            document.getElementById('userInfo').innerHTML = `
+                <h2>Інформація про користувача</h2>
+                <p><strong>ID:</strong> ${data.userId}</p>
+                <p><strong>Ім'я:</strong> ${data.firstName}</p>
+                <p><strong>Нікнейм:</strong> ${data.username ? '@' + data.username : 'Не вказано'}</p>
+            `;
+
+            // Update referral count
+            document.getElementById('referralCount').textContent = data.referralCount || 0;
+
+            // Generate and display referral link
+            const referralLink = `https://t.me/SHORTILINKbot?start=${data.userId}`;
+            document.getElementById('referralLinkText').textContent = referralLink;
+
+            // Update referrals list
+            const referralsList = document.getElementById('referralsList');
+            let referralsHTML = '<h2>Список рефералів</h2>';
+            
+            if (data.referrals && data.referrals.length > 0) {
+                referralsHTML += '<div class="referral-items">';
+                data.referrals.forEach(referral => {
+                    referralsHTML += `
+                        <div class="referral-item">
+                            <p><strong>Користувач:</strong> ${referral.username ? '@' + referral.username : 'Анонім'}</p>
+                            <p><strong>ID:</strong> ${referral.user_id}</p>
+                        </div>
+                    `;
+                });
+                referralsHTML += '</div>';
+            } else {
+                referralsHTML += '<p>У вас поки немає рефералів</p>';
+            }
+            
+            referralsList.innerHTML = referralsHTML;
+        }
+
+        // Initialize the app
+        function initApp() {
+            // Get URL parameters
+            const urlData = getUrlParams();
+            
+            // Save to localStorage
+            if (urlData.userId) {
+                saveToLocalStorage(urlData);
+            }
+            
+            // Load data (prefer URL data over localStorage)
+            const data = urlData.userId ? urlData : loadFromLocalStorage();
+            
+            // Update UI if we have data
+            if (data) {
+                updateUI(data);
+            } else {
+                document.body.innerHTML = '<div class="container"><h1>Помилка: Дані не знайдено</h1></div>';
+            }
+        }
+
+        // Run the app
+        initApp();
+    </script>
+</body>
+</html>
