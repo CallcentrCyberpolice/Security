@@ -1,474 +1,134 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Монетка зі шкалою</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <title>Coin Game</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #f0f0f0;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 100vh;
-            font-family: 'Roboto', sans-serif;
-        }
-        #coin {
-            position: absolute;
-            width: 150px;
-            height: 150px;
-            background-color: gold;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-            cursor: pointer;
-            transition: width 0.2s, height 0.2s, transform 0.1s ease-out;
-        }
-        #button-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
-            background-color: #ccc;
-            gap: 10px;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 1;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-        }
-        .square-button {
-            width: 50px;
-            height: 50px;
-            background-color: #555;
-            border-radius: 10px;
-            border: none;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            transition: background-color 0.3s, transform 0.2s;
-            outline: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .square-button:hover {
-            background-color: #777;
-            transform: scale(1.1);
-        }
-        #center-button {
-            width: 60px;
-            height: 60px;
-            background-color: #444;
-            border-radius: 50%;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            transition: background-color 0.3s, transform 0.2s;
-            outline: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        #center-button:hover {
-            background-color: #666;
-            transform: scale(1.1);
-        }
-        #shop-menu {
-            position: fixed;
-            bottom: -100%;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #333;
-            color: white;
-            transition: bottom 0.3s ease;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #shop-menu.open {
-            bottom: 0;
-        }
-        #shop-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            padding: 15px;
-            background-color: #444;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        #shop-title {
-            font-size: 24px;
-            font-weight: bold;
-        }
-        #close-shop {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            transition: color 0.3s;
-        }
-        #close-shop:hover {
-            color: #ff5555;
-        }
-        #skin-list {
-            width: 100%;
-            max-width: 400px;
-            padding: 15px;
-            overflow-y: auto;
-            flex-grow: 1;
-        }
-        .skin-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #444;
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .skin-circle {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            margin-bottom: 10px;
-        }
-        .skin-info {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-        }
-        .skin-price {
-            font-size: 18px;
-            color: gold;
-        }
-        .skin-info button {
-            width: 100%;
-            padding: 8px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.3s;
-        }
-        .buy-skin {
-            background-color: #555;
-            color: white;
-        }
-        .buy-skin:hover {
-            background-color: #777;
-        }
-        .select-skin {
-            background-color: #666;
-            color: white;
-        }
-        .select-skin:hover {
-            background-color: #888;
-        }
-        .select-skin:disabled {
-            background-color: #333;
-            cursor: not-allowed;
-        }
-        #top-menu {
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
-            padding: 10px;
-            background-color: #d3d3d3;
-            color: white;
-            position: relative;
-            z-index: 1;
-        }
-        #coin-circle {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 40px;
-            height: 40px;
-            background-color: gold;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            font-size: 24px;
-            font-weight: bold;
-            color: #000;
-        }
-        #coin-count {
-            margin-left: 10px;
-            color: #000;
-        }
-        #scale-container {
-            position: fixed;
-            bottom: 80px;
-            left: 0;
-            right: 0;
-            padding: 10px;
-            background-color: transparent;
-            z-index: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        #scale {
-            width: 80%;
-            height: 10px;
-            background-color: #ddd;
-            border-radius: 5px;
-            overflow: hidden;
-            position: relative;
-        }
-        #scale-progress {
-            height: 100%;
-            background-color: gold;
-            width: 100%;
-            transition: width 0.1s;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { border: 1px solid #ddd; padding: 20px; border-radius: 8px; }
+        h2 { color: #333; }
+        p { margin-bottom: 10px; }
+          ul {
+            list-style-type: none;
+            padding: 0;
+          }
+          li {
+            margin-bottom: 5px;
+          }
     </style>
 </head>
 <body>
-    <!-- Верхнє меню -->
-    <div id="top-menu">
-        <div id="coin-circle">C</div>
-        <div id="coin-count">0</div>
-    </div>
-
-    <!-- Основний контент -->
-    <div id="coin"></div>
-
-    <!-- Контейнер для шкали -->
-    <div id="scale-container">
-        <div id="scale">
-            <div id="scale-progress"></div>
+    <div class="container">
+        <h2>Інформація про користувача</h2>
+        <div id="user-data">
+            <p><strong>Telegram ID:</strong> <span id="user-id"></span></p>
+            <p><strong>Ім'я:</strong> <span id="first-name"></span></p>
+            <p><strong>Нікнейм:</strong> <span id="username"></span></p>
+            <p><strong>Реферальне посилання:</strong> <span id="referral-link"></span></p>
+            <p><strong>Вас запросив:</strong> <span id="referrer-id"></span></p>
+            <p><strong>Запрошені користувачі:</strong>
+             <ul id="referrals-list"></ul>
+                </p>
+           <p><strong>Ваші монети:</strong> <span id="coins"></span></p>
         </div>
     </div>
-
-    <!-- Контейнер для кнопок -->
-    <div id="button-container">
-        <button class="square-button" title="Налаштування"><i class="fas fa-cog"></i></button>
-        <button class="square-button" id="shop-button" title="Магазин"><i class="fas fa-shopping-cart"></i></button>
-        <button id="center-button" title="Грати"><i class="fas fa-play"></i></button>
-        <button class="square-button">4</button>
-        <button class="square-button">5</button>
-    </div>
-
-    <!-- Меню магазину -->
-    <div id="shop-menu">
-        <div id="shop-header">
-            <div id="shop-title">Магазин</div>
-            <button id="close-shop"><i class="fas fa-times"></i></button>
-        </div>
-        <div id="skin-list">
-            <!-- Скіни -->
-            <div class="skin-item" data-color="gold" data-price="0">
-                <div class="skin-circle" style="background-color: gold;"></div>
-                <div class="skin-info">
-                    <div class="skin-price">Безкоштовно</div>
-                    <button class="buy-skin">Купити</button>
-                    <button class="select-skin" title="Вибрати"><i class="fas fa-check"></i></button>
-                </div>
-            </div>
-            <div class="skin-item" data-color="silver" data-price="100">
-                <div class="skin-circle" style="background-color: silver;"></div>
-                <div class="skin-info">
-                    <div class="skin-price">100</div>
-                    <button class="buy-skin">Купити</button>
-                    <button class="select-skin" title="Вибрати" disabled><i class="fas fa-check"></i></button>
-                </div>
-            </div>
-            <div class="skin-item" data-color="red" data-price="200">
-                <div class="skin-circle" style="background-color: red;"></div>
-                <div class="skin-info">
-                    <div class="skin-price">200</div>
-                    <button class="buy-skin">Купити</button>
-                    <button class="select-skin" title="Вибрати" disabled><i class="fas fa-check"></i></button>
-                </div>
-            </div>
-            <div class="skin-item" data-color="blue" data-price="300">
-                <div class="skin-circle" style="background-color: blue;"></div>
-                <div class="skin-info">
-                    <div class="skin-price">300</div>
-                    <button class="buy-skin">Купити</button>
-                    <button class="select-skin" title="Вибрати" disabled><i class="fas fa-check"></i></button>
-                </div>
-            </div>
-            <div class="skin-item" data-color="green" data-price="400">
-                <div class="skin-circle" style="background-color: green;"></div>
-                <div class="skin-info">
-                    <div class="skin-price">400</div>
-                    <button class="buy-skin">Купити</button>
-                    <button class="select-skin" title="Вибрати" disabled><i class="fas fa-check"></i></button>
-                </div>
-            </div>
-            <div class="skin-item" data-color="purple" data-price="500">
-                <div class="skin-circle" style="background-color: purple;"></div>
-                <div class="skin-info">
-                    <div class="skin-price">500</div>
-                    <button class="buy-skin">Купити</button>
-                    <button class="select-skin" title="Вибрати" disabled><i class="fas fa-check"></i></button>
-                </div>
-            </div>
-            <div class="skin-item" data-color="orange" data-price="600">
-                <div class="skin-circle" style="background-color: orange;"></div>
-                <div class="skin-info">
-                    <div class="skin-price">600</div>
-                    <button class="buy-skin">Купити</button>
-                    <button class="select-skin" title="Вибрати" disabled><i class="fas fa-check"></i></button>
-                </div>
-            </div>
-            <div class="skin-item" data-color="pink" data-price="700">
-                <div class="skin-circle" style="background-color: pink;"></div>
-                <div class="skin-info">
-                    <div class="skin-price">700</div>
-                    <button class="buy-skin">Купити</button>
-                    <button class="select-skin" title="Вибрати" disabled><i class="fas fa-check"></i></button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const coin = document.getElementById('coin');
-        const shopButton = document.getElementById('shop-button');
-        const shopMenu = document.getElementById('shop-menu');
-        const closeShop = document.getElementById('close-shop');
-        const scaleProgress = document.getElementById('scale-progress');
-        let posX = Math.random() * (window.innerWidth - 150);
-        let posY = Math.random() * (window.innerHeight - 150);
-        let speedX = 1 + Math.random() * 1;
-        let speedY = 1 + Math.random() * 1;
-        const minSize = 30;
-        const maxSize = 150;
-        let currentSize = maxSize;
-        const maxSpeed = 10;
-        const growthSpeed = 0.1;
-        let isPaused = false;
-        let coins = 0;
-        let isDragging = false;
-        let holdTimer = null;
-        const holdDuration = 2000;
-        const topMenuHeight = document.getElementById('top-menu').clientHeight;
-        const buttonContainerHeight = document.getElementById('button-container').clientHeight;
-
-        // Відкриття/закриття меню магазину
-        shopButton.addEventListener('click', () => {
-            shopMenu.classList.add('open');
-        });
-
-        closeShop.addEventListener('click', () => {
-            shopMenu.classList.remove('open');
-        });
-
-        // Оновлення швидкості
-        function updateSpeed() {
-            const sizeRatio = (maxSize - currentSize) / (maxSize - minSize);
-            speedX = (1 + maxSpeed * sizeRatio) * (speedX > 0 ? 1 : -1);
-            speedY = (1 + maxSpeed * sizeRatio) * (speedY > 0 ? 1 : -1);
+      <script>
+         function getParameterByName(name, url = window.location.href) {
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
         }
 
-        // Оновлення шкали
-        function updateScale() {
-            const scalePercentage = (currentSize / maxSize) * 100;
-            scaleProgress.style.width = scalePercentage + '%';
-        }
+          const userId = getParameterByName('user_id');
+           function fetchData(){
+                const xhr = new XMLHttpRequest();
+                     xhr.open("GET", `/my_data?user_id=${userId}`, true);
+                    xhr.onload = function () {
+                        if (xhr.status === 200) {
+                             const data = JSON.parse(xhr.responseText);
+                            document.getElementById('user-id').textContent = userId;
+                           document.getElementById('first-name').textContent = data.first_name;
+                            document.getElementById('username').textContent = data.username || "Немає";
+                            document.getElementById('referral-link').textContent =`t.me/YOUR_BOT_USERNAME?start=${userId}`;
+                            document.getElementById('referrer-id').textContent = data.referrer || "Немає";
+                            document.getElementById('coins').textContent = data.coins;
 
-        function update() {
-            if (isPaused || isDragging) return;
 
-            posX += speedX;
-            posY += speedY;
+                            const referralsList = document.getElementById('referrals-list');
+                            referralsList.innerHTML = "";
+                            if(data.referrals){
+                              data.referrals.forEach(refId => {
+                             const refData = getReferralData(refId);
+                            if(refData){
+                                const li = document.createElement('li');
+                                   li.textContent = `ID: ${refId}, Name: ${refData.first_name || 'Немає'}  Username: ${refData.username || "Немає"}`;
+                                 referralsList.appendChild(li);
+                            }
+                            });
+                            }else{
+                                const li = document.createElement('li');
+                                 li.textContent = `Немає запрошених користувачів`;
+                                 referralsList.appendChild(li);
+                            }
 
-            if (posX + currentSize > window.innerWidth || posX < 0) {
-                speedX = -speedX * (1 + (maxSize - currentSize) / maxSize);
-                posX = Math.max(0, Math.min(window.innerWidth - currentSize, posX));
-            }
-            if (posY + currentSize > window.innerHeight - buttonContainerHeight || posY < topMenuHeight) {
-                speedY = -speedY * (1 + (maxSize - currentSize) / maxSize);
-                posY = Math.max(topMenuHeight, Math.min(window.innerHeight - currentSize - buttonContainerHeight, posY));
-            }
 
-            coin.style.transform = `translate(${posX}px, ${posY}px)`;
+                        } else {
+                         console.error("Помилка під час запиту даних:", xhr.status);
+                             document.getElementById('user-data').innerHTML = "<p>Помилка: Неможливо отримати дані про користувача</p>";
+                        }
+                    };
+                 xhr.send();
+             }
 
-            if (currentSize < maxSize) {
-                currentSize += growthSpeed;
-                if (currentSize > maxSize) currentSize = maxSize;
-                updateCoinSize();
-                updateSpeed();
-                updateScale();
-            }
+            function getReferralData(refId){
+                    let refData = null;
+                   const xhr = new XMLHttpRequest();
+                         xhr.open("GET", `/my_data?user_id=${refId}`, false);
+                         xhr.onload = function () {
+                            if (xhr.status === 200) {
+                                refData =  JSON.parse(xhr.responseText);
+                            } else {
+                              console.error("Помилка під час запиту даних:", xhr.status);
+                            }
+                        }
+                         xhr.send();
+                        return refData;
+               }
 
-            requestAnimationFrame(update);
-        }
 
-        function updateCoinSize() {
-            coin.style.width = currentSize + 'px';
-            coin.style.height = currentSize + 'px';
-        }
+        if (userId) {
+             fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates?offset=-1`) // Замініть на токен вашого бота
+                .then(response => response.json())
+                .then(data => {
+                  const updates = data.result;
+                    if (updates && updates.length > 0) {
+                    const lastUpdate = updates[updates.length -1];
+                    const lastMessage = lastUpdate.message;
+                    if (lastMessage && lastMessage.from.id === parseInt(userId)) {
 
-        coin.addEventListener('click', () => {
-            currentSize -= 10;
-            if (currentSize < minSize) currentSize = minSize;
-            updateCoinSize();
-            updateSpeed();
-            updateScale();
-            coins += 10;
-            updateCoinCount();
-        });
+                         fetchData();
 
-        function resetGame() {
-            currentSize = maxSize;
-            posX = Math.random() * (window.innerWidth - 150);
-            posY = Math.random() * (window.innerHeight - 150);
-            updateCoinSize();
-            updateSpeed();
-            updateScale();
-        }
-
-        function pauseGame() {
-            isPaused = !isPaused;
-            if (!isPaused) {
-                update();
-            }
-        }
-
-        function updateCoinCount() {
-            document.getElementById('coin-count').innerText = coins;
-        }
-
-        const skinItems = document.querySelectorAll('.skin-item');
-        skinItems.forEach(skin => {
-            const buyButton = skin.querySelector('.buy-skin');
-            const selectButton = skin.querySelector('.select-skin');
-            const price = parseInt(skin.getAttribute('data-price'));
-            const color = skin.getAttribute('data-color');
-
-            if (buyButton) {
-                buyButton.addEventListener('click', () => {
-                    if (coins >= price) {
-                        coins -= price;
-                        updateCoinCount();
-                        buyButton.remove();
-                        selectButton.disabled = false;
-                    } else {
-                        alert('Недостатньо монеток!');
+                    }else{
+                        console.error("Помилка: Немає повідомлень від цього користувача.");
+                        document.getElementById('user-data').innerHTML = "<p>Помилка: Немає даних для цього користувача.</p>";
                     }
-                });
-            }
+                   }else{
+                        console.error("Помилка: Немає оновлень в телеграм.");
+                           document.getElementById('user-data').innerHTML = "<p>Помилка: Неможливо отримати дані з телеграм.</p>";
 
-            selectButton.addEventListener('click', () => {
-                coin.style.backgroundColor = color;
-            });
-        });
+                     }
+                  })
+                .catch(error => {
+                        console.error("Помилка отримання оновлень:", error);
+                        document.getElementById('user-data').innerHTML = "<p>Помилка отримання даних з телеграм.</p>";
+                     });
 
-        updateSpeed();
-        update();
-    </script>
+        }
+         else {
+            document.getElementById('user-data').innerHTML = "<p>Помилка: Немає ID користувача.</p>";
+        }
+      </script>
 </body>
 </html>
