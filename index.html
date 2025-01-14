@@ -72,6 +72,20 @@
             border-radius: 5px;
             word-break: break-all;
         }
+
+        .copy-button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .copy-button:hover {
+            background-color: #1557b0;
+        }
     </style>
 </head>
 <body>
@@ -79,7 +93,6 @@
         <h1>Coin Game</h1>
         <div class="user-info" id="userInfo">
             <h2>Інформація про користувача</h2>
-            <!-- User info will be inserted here -->
         </div>
         <div class="stats">
             <div class="stat-item">
@@ -90,56 +103,57 @@
         <div class="referral-link" id="referralLink">
             <h2>Ваше реферальне посилання</h2>
             <p id="referralLinkText"></p>
+            <button class="copy-button" onclick="copyReferralLink()">Копіювати посилання</button>
         </div>
         <div class="referrals" id="referralsList">
             <h2>Список рефералів</h2>
-            <!-- Referrals will be inserted here -->
         </div>
     </div>
 
     <script>
-        // Function to get URL parameters
         function getUrlParams() {
             const queryString = window.location.search;
             const urlParams = new URLSearchParams(queryString);
             return {
-                userId: urlParams.get('user_id'),
                 username: urlParams.get('username'),
                 firstName: urlParams.get('first_name'),
                 referralCount: urlParams.get('referral_count'),
-                referrals: JSON.parse(urlParams.get('referrals') || '[]')
+                referrals: JSON.parse(urlParams.get('referrals') || '[]'),
+                refId: urlParams.get('ref_id')
             };
         }
 
-        // Function to save data to localStorage
         function saveToLocalStorage(data) {
             localStorage.setItem('userData', JSON.stringify(data));
         }
 
-        // Function to load data from localStorage
         function loadFromLocalStorage() {
             const data = localStorage.getItem('userData');
             return data ? JSON.parse(data) : null;
         }
 
-        // Function to update UI
+        function copyReferralLink() {
+            const linkText = document.getElementById('referralLinkText').textContent;
+            navigator.clipboard.writeText(linkText).then(() => {
+                alert('Посилання скопійовано!');
+            }).catch(err => {
+                console.error('Помилка копіювання:', err);
+            });
+        }
+
         function updateUI(data) {
-            // Update user info
             document.getElementById('userInfo').innerHTML = `
                 <h2>Інформація про користувача</h2>
-                <p><strong>ID:</strong> ${data.userId}</p>
                 <p><strong>Ім'я:</strong> ${data.firstName}</p>
                 <p><strong>Нікнейм:</strong> ${data.username ? '@' + data.username : 'Не вказано'}</p>
             `;
 
-            // Update referral count
             document.getElementById('referralCount').textContent = data.referralCount || 0;
 
-            // Generate and display referral link
-            const referralLink = `https://t.me/SHORTILINKbot?start=${data.userId}`;
+            // Оновлення реферального посилання
+            const referralLink = `https://t.me/SHORTILINKbot?start=${data.refId}`;
             document.getElementById('referralLinkText').textContent = referralLink;
 
-            // Update referrals list
             const referralsList = document.getElementById('referralsList');
             let referralsHTML = '<h2>Список рефералів</h2>';
             
@@ -148,8 +162,7 @@
                 data.referrals.forEach(referral => {
                     referralsHTML += `
                         <div class="referral-item">
-                            <p><strong>Користувач:</strong> ${referral.username ? '@' + referral.username : 'Анонім'}</p>
-                            <p><strong>ID:</strong> ${referral.user_id}</p>
+                            <p><strong>Ім'я:</strong> ${referral.name}</p>
                         </div>
                     `;
                 });
@@ -161,20 +174,15 @@
             referralsList.innerHTML = referralsHTML;
         }
 
-        // Initialize the app
         function initApp() {
-            // Get URL parameters
             const urlData = getUrlParams();
             
-            // Save to localStorage
-            if (urlData.userId) {
+            if (urlData.username || urlData.firstName) {
                 saveToLocalStorage(urlData);
             }
             
-            // Load data (prefer URL data over localStorage)
-            const data = urlData.userId ? urlData : loadFromLocalStorage();
+            const data = urlData.username ? urlData : loadFromLocalStorage();
             
-            // Update UI if we have data
             if (data) {
                 updateUI(data);
             } else {
@@ -182,7 +190,6 @@
             }
         }
 
-        // Run the app
         initApp();
     </script>
 </body>
