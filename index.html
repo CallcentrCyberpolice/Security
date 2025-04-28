@@ -2,658 +2,1017 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Інтерактивна Карта Поверху</title>
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Навігатор Приміщень v3</title>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        /* Basic Reset & Body Styling */
-        html {
-            box-sizing: border-box;
-            height: 100%;
-        }
-        *, *:before, *:after {
-            box-sizing: inherit;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden; /* Prevent scrollbars */
-            width: 100%;
-            height: 100%;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            background-color: #f0f0f0; /* Background for areas outside map */
-            overscroll-behavior: none; /* Prevent pull-to-refresh actions */
-            position: fixed; /* Prevent scrolling on iOS */
+        :root {
+            --bg-color: #f4f7f6;
+            --panel-bg: #ffffff;
+            --primary-color: #4a90e2; /* Blue */
+            --secondary-color: #50e3c2; /* Teal */
+            --accent-color: #f5a623; /* Orange */
+            --text-color: #333;
+            --text-light: #777;
+            --error-color: #d0021b;
+            --success-color: #7ed321;
+            --disabled-bg: #e0e0e0;
+            --disabled-text: #9e9e9e;
+            --border-color: #ddd;
+            --map-bg: #e9eef2;
+            --room-fill: rgba(74, 144, 226, 0.1);
+            --room-border: var(--primary-color);
+            --current-room-fill: rgba(80, 227, 194, 0.2);
+            --current-room-border: var(--secondary-color);
+            --arrow-color: var(--error-color);
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* Map Container - Handles centering and positioning */
-        #map-container {
-            position: relative; /* Crucial for absolute positioning of children */
-            width: 100%;
+        html, body {
+            margin: 0; padding: 0;
+            height: 100%; width: 100%;
+            overflow: hidden;
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            -webkit-user-select: none; user-select: none;
+            touch-action: manipulation;
+            font-size: 16px; /* Base font size */
+        }
+
+        #app-container {
+            display: flex;
+            flex-direction: column;
             height: 100%;
-            display: flex; /* Use flexbox for centering */
+            width: 100%;
+        }
+
+        /* --- Top Panel --- */
+        #top-panel {
+            background: var(--panel-bg);
+            padding: 10px 15px;
+            box-shadow: 0 2px 5px var(--shadow-color);
+            z-index: 10;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        #status-bar {
+            font-size: 0.9em;
+            min-height: 20px;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: 500;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+        }
+        #status-bar.error { background-color: var(--error-color); color: white; border-color: var(--error-color);}
+        #status-bar.success { background-color: var(--success-color); color: white; border-color: var(--success-color);}
+        #status-bar.info { background-color: var(--primary-color); color: white; border-color: var(--primary-color);}
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: var(--primary-color);
+            border: none;
+            color: white;
+            font-size: 0.9em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px; /* Space between icon and text */
+        }
+        button i { font-size: 1.1em; } /* Slightly larger icons */
+
+        button:hover:not(:disabled) { background-color: #3a7ac0; }
+        button:active:not(:disabled) { transform: scale(0.98); }
+        button:disabled {
+            background-color: var(--disabled-bg);
+            color: var(--disabled-text);
+            cursor: not-allowed;
+        }
+        button.secondary { background-color: var(--secondary-color); }
+        button.secondary:hover:not(:disabled) { background-color: #40c0a0; }
+        button.danger { background-color: var(--error-color); }
+        button.danger:hover:not(:disabled) { background-color: #a00010; }
+
+        /* --- Main Content Area --- */
+        #main-content {
+            flex-grow: 1;
+            position: relative;
+            display: flex; /* Use flex for canvas centering */
             justify-content: center;
             align-items: center;
-            background-color: #ffffff; /* Map background */
+            overflow: hidden; /* Important for canvas panning/zooming later */
+             background-color: var(--map-bg);
         }
 
-        /* Map Image - Scales responsively */
-        #map-image {
-            display: block; /* Remove extra space below image */
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain; /* Scale while preserving aspect ratio */
-            user-select: none; /* Prevent image selection */
-            -webkit-user-drag: none; /* Prevent image dragging */
-            box-shadow: 0 0 15px rgba(0,0,0,0.2); /* Subtle shadow for depth */
-            background-color: #e0e0e0; /* Placeholder bg while loading */
+        #map-canvas {
+            display: block;
+            background-color: var(--panel-bg); /* White background for the map */
+            /* Max size will be controlled by JS/container */
+            box-shadow: 0 0 15px rgba(0,0,0,0.15);
+            cursor: grab; /* Indicate panning possibility */
+            border: 1px solid var(--border-color);
         }
+         #map-canvas.grabbing { cursor: grabbing; }
+         #map-canvas.placing { cursor: crosshair; }
 
-        /* Arrow Indicator */
-        #arrow {
-            position: absolute;
-            /* Start hidden until position is known and permission granted */
-            visibility: hidden;
-            width: 0;
-            height: 0;
-            /* Create triangle shape */
-            border-left: 11px solid transparent;    /* Half base width */
-            border-right: 11px solid transparent;   /* Half base width */
-            border-bottom: 22px solid rgba(220, 30, 30, 0.9); /* Red arrow */
-            /* Set rotation point to the bottom center (tip of the arrow) */
-            transform-origin: 50% 100%;
-            /* Smooth transitions */
-            transition: transform 0.18s linear, /* Faster rotation updates */
-                        top 0.4s ease-out,
-                        left 0.4s ease-out,
-                        visibility 0s linear 0.1s;
-            z-index: 10; /* Ensure arrow is above map and labels */
-            /* Initial position set by JS */
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -100%) rotate(0deg); /* Centered horizontally, tip at the point */
-            pointer-events: none; /* Don't interfere */
-            filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); /* Arrow shadow */
-        }
-
-        /* Room Labels */
-        .room-label {
-            position: absolute;
-            background-color: rgba(0, 60, 130, 0.8); /* Darker blue background */
-            color: white;
-            padding: 4px 8px; /* Slightly larger padding */
-            border-radius: 5px;
-            font-size: 10px; /* Base font size */
-            font-weight: bold;
-            white-space: nowrap; /* Prevent wrapping */
-            /* Center the label on its coordinates */
-            transform: translate(-50%, -50%) scale(1.0);
-            transform-origin: center center; /* Scale from center */
-            /* Smooth transition for scaling and color */
-            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), /* Elastic scale */
-                        background-color 0.3s ease-in-out,
-                        opacity 0.5s ease,
-                        left 0s, /* No transition for position */
-                        top 0s;
-            z-index: 5; /* Below arrow, above map */
+        /* --- User Arrow --- */
+        #user-arrow {
+            width: 0; height: 0;
+            border-left: 9px solid transparent;
+            border-right: 9px solid transparent;
+            border-bottom: 18px solid var(--arrow-color);
+            position: absolute; /* Positioned relative to main-content */
+            transform-origin: center bottom;
+            transition: transform 0.1s linear;
+            z-index: 5;
             pointer-events: none; /* Don't interfere with map interaction */
-            opacity: 0; /* Start hidden until positioned */
-            box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
-            text-align: center;
+            display: none; /* Hidden initially */
+            filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3));
         }
 
-        /* Highlighted State for Room Labels */
-        .room-label.highlighted {
-            transform: translate(-50%, -50%) scale(1.9); /* Scale up more */
-            background-color: rgba(210, 40, 40, 0.92); /* Brighter Red when highlighted */
-            z-index: 6; /* Bring slightly forward */
-        }
-
-        /* Modal for Permissions */
-        .modal {
+        /* --- Modals --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
             display: none; /* Hidden by default */
-            position: fixed;
-            z-index: 1000; /* Above everything */
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 85%;
-            max-width: 320px;
-            background-color: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
-            text-align: center;
-            border-top: 5px solid #007bff;
-        }
-
-        .modal p {
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-size: 16px;
-            line-height: 1.5;
-            color: #333;
-        }
-
-        .modal button {
-            padding: 12px 25px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-            appearance: none; /* Remove default styles */
-        }
-        .modal button:hover, .modal button:focus {
-            background-color: #0056b3;
-            outline: none;
-        }
-         .modal button:active {
-             transform: scale(0.98);
-         }
-
-        /* Debug Output */
-        #debug {
-            position: fixed;
-            bottom: 5px;
-            left: 5px;
-            background: rgba(0,0,0,0.65);
-            color: white;
-            padding: 5px 10px;
-            font-size: 10px;
-            border-radius: 4px;
-            z-index: 101;
-            max-width: calc(100% - 10px);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            opacity: 0.9;
-        }
-
-        /* Loading indicator (optional) */
-        #loading-indicator {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1001; /* Above modal */
-            font-size: 18px;
-            color: #555;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
             padding: 15px;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 8px;
-            display: none; /* Hidden by default */
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+             box-sizing: border-box;
         }
+        .modal-overlay.active { display: flex; }
+
+        .modal-content {
+            background: var(--panel-bg);
+            padding: 25px 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        .modal-content h3 { margin-top: 0; color: var(--primary-color); }
+        .modal-content p { color: var(--text-light); line-height: 1.5; margin-bottom: 20px;}
+        .modal-content label { display: block; margin-bottom: 8px; text-align: left; font-weight: bold;}
+        .modal-content input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
+
+        /* --- Room List (Optional Panel) --- */
+        #room-list-panel {
+            position: absolute;
+            top: 10px; right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px var(--shadow-color);
+            z-index: 5;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+         #room-list-panel h4 { margin: 0 0 5px 0; font-size: 0.9em; }
+         #room-list-panel ul { list-style: none; padding: 0; margin: 0; }
+         #room-list-panel li { padding: 5px; cursor: pointer; font-size: 0.85em; border-bottom: 1px solid #eee;}
+         #room-list-panel li:hover { background-color: #eee; }
+         #room-list-panel li.active-tracking-room { font-weight: bold; background-color: var(--secondary-color); color: white; }
+
+
     </style>
 </head>
 <body>
-    <div id="map-container">
-        <!-- Використовуємо пряме посилання на зображення, надане вами -->
-        <img id="map-image"
-             src="https://i.ibb.co/63wnkPW/test.png"
-             alt="План поверху"
-             onerror="this.alt='Помилка завантаження карти'; console.error('Failed to load map image from: ' + this.src);"
-        >
 
-        <div id="arrow"></div>
+<div id="app-container">
 
-        <!-- ======================================================================== -->
-        <!-- === УВАГА! НАЛАШТУЙТЕ ЦІ КООРДИНАТИ ДЛЯ ВАШОЇ КАРТИ! === -->
-        <!-- === data-x = % від лівого краю; data-y = % від верхнього краю === -->
-        <!-- ======================================================================== -->
-        <div class="room-label" id="label-K201" data-room-id="K201 Їдальня" data-x="45" data-y="65">K201</div>
-        <div class="room-label" id="label-K202" data-room-id="K202" data-x="18" data-y="25">K202</div>
-        <div class="room-label" id="label-K203" data-room-id="K203" data-x="17" data-y="10">K203</div>
-        <div class="room-label" id="label-K204" data-room-id="K204" data-x="26" data-y="10">K204</div>
-        <div class="room-label" id="label-K205" data-room-id="K205" data-x="35" data-y="10">K205</div>
-        <div class="room-label" id="label-K206" data-room-id="K206" data-x="44" data-y="10">K206</div>
-        <div class="room-label" id="label-K207" data-room-id="K207" data-x="53" data-y="10">K207</div>
-        <div class="room-label" id="label-K208" data-room-id="K208" data-x="75" data-y="15">K208</div>
-        <div class="room-label" id="label-WC-M" data-room-id="K209 WC Чоловічий" data-x="70" data-y="38">WC Чол.</div>
-        <div class="room-label" id="label-WC-F" data-room-id="K210 WC Жіночий" data-x="70" data-y="48">WC Жін.</div>
-        <div class="room-label" id="label-WC-A" data-room-id="WC Доступний" data-x="60" data-y="40">WC Дост.</div>
-        <div class="room-label" id="label-K214" data-room-id="K214" data-x="70" data-y="65">K214</div>
-        <div class="room-label" id="label-K215" data-room-id="K215" data-x="65" data-y="75">K215</div>
-        <div class="room-label" id="label-K217" data-room-id="K217" data-x="60" data-y="70">K217</div>
-        <div class="room-label" id="label-K2" data-room-id="K2 Тех. прим." data-x="60" data-y="48">K2</div>
-        <div class="room-label" id="label-K21a" data-room-id="K21 Тех. прим. (верх)" data-x="60" data-y="43">K21</div>
-        <div class="room-label" id="label-K21b" data-room-id="K21 Тех. прим. (низ)" data-x="65" data-y="70">K21</div>
-        <div class="room-label" id="label-Exit-F" data-room-id="Вихід F" data-x="88" data-y="80">Вихід F</div>
-        <div class="room-label" id="label-Exit-G" data-room-id="Вихід G" data-x="88" data-y="30">Вихід G</div>
-        <div class="room-label" id="label-Exit-D" data-room-id="Вхід D" data-x="50" data-y="97">Вхід D</div>
-        <div class="room-label" id="label-Stairs" data-room-id="Сходи" data-x="40" data-y="30">Сходи</div>
-         <!-- ======================================================================== -->
-         <!-- === КІНЕЦЬ БЛОКУ КООРДИНАТ КІМНАТ === -->
-         <!-- ======================================================================== -->
+    <!-- Top Control Panel -->
+    <div id="top-panel">
+        <div id="status-bar">Завантаження...</div>
+        <div class="control-group">
+            <!-- Initial State -->
+            <button id="btn-request-perms" title="Запросити дозволи на сенсори"><i class="fas fa-user-lock"></i> Дозволи</button>
+            <!-- Room Definition -->
+            <button id="btn-add-room" title="Почати визначення нової кімнати" disabled><i class="fas fa-plus-square"></i> Додати кімнату</button>
+            <button id="btn-set-corner1" title="Встановити перший кут поточної кімнати" disabled class="secondary"><i class="fas fa-map-marker-alt"></i> Кут 1</button>
+            <button id="btn-set-corner2" title="Встановити другий кут поточної кімнати" disabled class="secondary"><i class="fas fa-map-marker-alt"></i> Кут 2</button>
+            <button id="btn-cancel-define" title="Скасувати визначення кімнати" disabled class="danger"><i class="fas fa-times"></i> Скасувати</button>
+            <!-- Tracking -->
+            <button id="btn-start-tracking" title="Почати відстеження руху" disabled><i class="fas fa-play"></i> Відстеження</button>
+            <button id="btn-stop-tracking" title="Зупинити відстеження руху" disabled class="danger"><i class="fas fa-stop"></i> Стоп</button>
+             <!-- Map Interaction (Could add zoom etc.) -->
+        </div>
     </div>
 
-    <div id="debug">Ініціалізація...</div> <!-- For debugging -->
-
-    <div id="permission-prompt" class="modal">
-        <p>Щоб показувати ваш напрямок на карті, потрібен доступ до датчиків орієнтації вашого пристрою.</p>
-        <button id="grant-permission">Надати доступ</button>
+    <!-- Main Map Area -->
+    <div id="main-content">
+        <canvas id="map-canvas"></canvas>
+        <div id="user-arrow"></div>
+         <!-- Optional Room List -->
+         <div id="room-list-panel" style="display: none;">
+             <h4>Кімнати:</h4>
+             <ul id="room-list"></ul>
+         </div>
     </div>
 
-     <div id="loading-indicator">Завантаження карти...</div>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- DOM Elements ---
-            const mapContainer = document.getElementById('map-container');
-            const mapImage = document.getElementById('map-image');
-            const arrow = document.getElementById('arrow');
-            const roomLabelElements = document.querySelectorAll('.room-label');
-            const debugInfo = document.getElementById('debug');
-            const permissionPrompt = document.getElementById('permission-prompt');
-            const grantButton = document.getElementById('grant-permission');
-            const loadingIndicator = document.getElementById('loading-indicator');
+<!-- Modals -->
+<div id="modal-permissions" class="modal-overlay">
+    <div class="modal-content">
+        <h3><i class="fas fa-user-shield"></i> Потрібні дозволи</h3>
+        <p>Для роботи навігації сайту потрібен доступ до сенсорів руху (акселерометр) та орієнтації (компас) вашого пристрою. Будь ласка, надайте дозвіл.</p>
+        <div class="modal-buttons">
+            <button id="btn-grant-perms" class="secondary"><i class="fas fa-check"></i> Надати дозвіл</button>
+            <button id="btn-deny-perms" class="danger"><i class="fas fa-times"></i> Відхилити</button>
+        </div>
+    </div>
+</div>
 
-            // --- State Variables ---
-            let currentOrientation = 0; // Device heading (0-360 degrees, 0 = North)
-            let compassOffset = 0; // Manual offset if map North != true North
-            let orientationPermissionGranted = false;
-            let orientationFallbackUsed = false; // Flag if using relative orientation
+<div id="modal-calibration" class="modal-overlay">
+    <div class="modal-content">
+        <h3><i class="fas fa-compass"></i> Калібрування Компаса</h3>
+        <p>Для кращої точності напрямку, будь ласка, відкалібруйте компас. Повільно покрутіть телефон у всіх напрямках (рухом "вісімка").</p>
+        <div class="modal-buttons">
+            <button id="btn-calibration-done" class="secondary"><i class="fas fa-check"></i> Готово!</button>
+        </div>
+    </div>
+</div>
 
-            // === SIMULATED POSITION ===
-            // !! IMPORTANT: This is NOT real-time tracking inside the building !!
-            // Start user near entrance D (adjust if needed)
-            let currentUserPosition = { xPercent: 50, yPercent: 95 }; // % of map container
-            const proximityThresholdPercent = 6; // % of map's smaller dimension
+<div id="modal-room-name" class="modal-overlay">
+    <div class="modal-content">
+        <h3><i class="fas fa-edit"></i> Назва нової кімнати</h3>
+        <label for="input-room-name">Введіть назву кімнати:</label>
+        <input type="text" id="input-room-name" placeholder="Наприклад: Вітальня, Кухня...">
+        <div class="modal-buttons">
+            <button id="btn-confirm-room-name" class="secondary"><i class="fas fa-check"></i> Далі</button>
+            <button id="btn-cancel-room-name" class="danger"><i class="fas fa-times"></i> Скасувати</button>
+        </div>
+    </div>
+</div>
 
-            let mapLoaded = false;
-            let mapRect = null; // Cached map dimensions and position
-
-            // --- Room Data ---
-            const rooms = [];
-            roomLabelElements.forEach(label => {
-                const x = parseFloat(label.dataset.x);
-                const y = parseFloat(label.dataset.y);
-                // Basic validation of coordinates from HTML
-                if (!isNaN(x) && x >= 0 && x <= 100 && !isNaN(y) && y >= 0 && y <= 100) {
-                    rooms.push({
-                        id: label.dataset.roomId || label.id, // Use data-room-id preferably
-                        element: label,
-                        xPercent: x,
-                        yPercent: y,
-                    });
-                } else {
-                    console.warn(`Invalid or missing coordinates for room label: ${label.id}. Check data-x and data-y attributes.`);
-                    // Optionally hide or style invalid labels differently
-                    label.style.display = 'none';
-                }
-            });
-             console.log(`Initialized ${rooms.length} rooms with valid coordinates.`);
-
-            // --- Utility Functions ---
-            // Debounce function to limit frequent event triggers
-            function debounce(func, wait) {
-                let timeout;
-                return function executedFunction(...args) {
-                    const later = () => {
-                        clearTimeout(timeout);
-                        func(...args);
-                    };
-                    clearTimeout(timeout);
-                    timeout = setTimeout(later, wait);
-                };
-            }
-
-            // --- Map & Element Positioning ---
-            function updateMapAndElementPositions() {
-                 // Check if image has loaded and has dimensions
-                if (!mapImage.complete || mapImage.naturalWidth === 0) {
-                    console.log("Map image not ready for positioning.");
-                     // Ensure loading indicator is shown if map isn't ready
-                    if (getComputedStyle(loadingIndicator).display === 'none') {
-                         loadingIndicator.style.display = 'block';
-                    }
-                    // Try again shortly - useful for race conditions on load
-                    // setTimeout(updateMapAndElementPositions, 100);
-                    return;
-                }
-                 // Hide loading indicator once map is ready
-                 if (loadingIndicator.style.display !== 'none') {
-                    loadingIndicator.style.display = 'none';
-                 }
+<div id="modal-place-room" class="modal-overlay">
+     <div class="modal-content">
+         <h3><i class="fas fa-map-marked-alt"></i> Розміщення кімнати</h3>
+         <p>Кімната "<span id="placeroom-name"></span>" визначена. Тепер клікніть на карті, щоб розмістити її.</p>
+         <p style="font-size: 0.9em; color: var(--text-light);">(Ви зможете перемістити її пізніше, якщо потрібно)</p>
+         <!-- Button might not be needed if click on map is the action -->
+          <button id="btn-cancel-place-room" class="danger"><i class="fas fa-times"></i> Скасувати розміщення</button>
+     </div>
+ </div>
 
 
-                mapRect = mapImage.getBoundingClientRect(); // Get current rendered size/pos
-                if (!mapRect || mapRect.width === 0 || mapRect.height === 0) {
-                    console.error("Map dimensions are zero, cannot position elements. BoundingRect:", mapRect);
-                     // Try again in case layout wasn't finished
-                     requestAnimationFrame(updateMapAndElementPositions);
-                    return;
-                }
+<script>
+    // --- Application State ---
+    let state = 'initializing'; // initializing, no_perms, idle, defining_room_name, defining_corner1, defining_corner2, placing_room, mapping, tracking
+    let permissionsGranted = false;
+    let needsCalibrationCheck = true;
+    let rooms = []; // Array to store room objects { id, name, corners:[{x,y},{x,y}], mapRect:{x,y,w,h}, color }
+    let currentRoomDefinition = null; // Temp storage while defining a room { name, corner1: {x,y}, corner2: {x,y} }
+    let activeTrackingRoomId = null; // ID of the room the user is currently in
+    let userPosition = { x: 0, y: 0 }; // User's position relative to the active room's origin on map
+    let userOrientation = 0; // User's orientation (degrees)
+    let mapOffset = { x: 0, y: 0 }; // For panning the map
+    let isPanning = false;
+    let panStart = { x: 0, y: 0 };
 
-                // Position labels based on mapRect and their percentage data
-                rooms.forEach(room => {
-                    const labelX = mapRect.left + (mapRect.width * room.xPercent / 100);
-                    const labelY = mapRect.top + (mapRect.height * room.yPercent / 100);
-                    room.element.style.left = `${labelX}px`;
-                    room.element.style.top = `${labelY}px`;
-                    // Fade in labels after positioning
-                    requestAnimationFrame(() => {
-                         room.element.style.opacity = '1';
-                    });
-                });
+    // --- Constants & Config ---
+    const SENSOR_FREQUENCY = 60; // Hz
+    const STEP_THRESHOLD = 1.6;
+    const STEP_COOLDOWN = 390; // ms
+    const STEP_SIZE_PIXELS = 10; // ESTIMATED pixels per step on the map (VERY rough)
+    const DEFAULT_ROOM_SIZE = { w: 100, h: 120 }; // Default pixels if corner distance too small
 
-                // Only set mapLoaded true once everything is positioned
-                if (!mapLoaded) {
-                    mapLoaded = true;
-                    console.log("Map and labels positioned successfully.");
-                    updateArrowPosition(); // Update arrow position now map is sized
-                    updateRoomHighlighting(); // Initial highlight check
-                }
-                updateDebugInfo(); // Update debug display
-            }
+    // --- DOM Elements ---
+    const statusBar = document.getElementById('status-bar');
+    const btnRequestPerms = document.getElementById('btn-request-perms');
+    const btnAddRoom = document.getElementById('btn-add-room');
+    const btnSetCorner1 = document.getElementById('btn-set-corner1');
+    const btnSetCorner2 = document.getElementById('btn-set-corner2');
+    const btnCancelDefine = document.getElementById('btn-cancel-define');
+    const btnStartTracking = document.getElementById('btn-start-tracking');
+    const btnStopTracking = document.getElementById('btn-stop-tracking');
+    const mapCanvas = document.getElementById('map-canvas');
+    const ctx = mapCanvas.getContext('2d');
+    const userArrow = document.getElementById('user-arrow');
+    const mainContent = document.getElementById('main-content');
+    const roomListPanel = document.getElementById('room-list-panel');
+    const roomListUl = document.getElementById('room-list');
 
-            const debouncedUpdatePositions = debounce(updateMapAndElementPositions, 150);
+    // Modals & Inputs
+    const modalPermissions = document.getElementById('modal-permissions');
+    const btnGrantPerms = document.getElementById('btn-grant-perms');
+    const btnDenyPerms = document.getElementById('btn-deny-perms');
+    const modalCalibration = document.getElementById('modal-calibration');
+    const btnCalibrationDone = document.getElementById('btn-calibration-done');
+    const modalRoomName = document.getElementById('modal-room-name');
+    const inputRoomName = document.getElementById('input-room-name');
+    const btnConfirmRoomName = document.getElementById('btn-confirm-room-name');
+    const btnCancelRoomName = document.getElementById('btn-cancel-room-name');
+    const modalPlaceRoom = document.getElementById('modal-place-room');
+    const placeRoomNameSpan = document.getElementById('placeroom-name');
+     const btnCancelPlaceRoom = document.getElementById('btn-cancel-place-room');
 
-            // --- Event Listeners Setup ---
-            // Image loading successful
-            mapImage.onload = () => {
-                console.log("Map image loaded successfully (onload event).");
-                updateMapAndElementPositions();
-            };
-             // Image loading error
-             mapImage.onerror = () => {
-                 console.error("ERROR loading map image from:", mapImage.src);
-                 loadingIndicator.textContent = "Помилка завантаження карти!";
-                 loadingIndicator.style.display = 'block'; // Ensure indicator shows error
-                 // Optionally hide the broken image element
-                 mapImage.style.display = 'none';
-             };
 
-            // Initial check if image is already cached and loaded
-            if (mapImage.complete && mapImage.naturalWidth > 0) {
-                console.log("Map image was already complete (cached). Running initial positioning.");
-                // Use requestAnimationFrame for better timing with rendering engine
-                requestAnimationFrame(updateMapAndElementPositions);
-            } else if (!mapImage.complete) {
-                console.log("Map image not yet complete. Waiting for onload or onerror...");
-                loadingIndicator.style.display = 'block'; // Show loading indicator
+    // --- Sensor Variables ---
+    let motionSensor = null;
+    let orientationSensor = null;
+    let lastAccMagnitude = 0;
+    let stepCooldownTimeout = null;
+    let stepCounter = 0; // Local counter for tracking session
+
+    // --- Initialization ---
+    function init() {
+        console.log("App Initializing...");
+        setStatus('Перевірка HTTPS та налаштування...', 'info');
+        if (!checkHttps()) return;
+
+        setupEventListeners();
+        resizeCanvas();
+        // Don't request permissions automatically, wait for button press
+        setState('no_perms');
+        console.log("App Initialized. Waiting for permissions request.");
+    }
+
+    function checkHttps() {
+        if (window.location.protocol !== 'https:') {
+            setStatus('ПОМИЛКА: Потрібен HTTPS! Відкрийте сторінку через https://', true);
+            // Disable all buttons except permissions potentially?
+            return false;
+        }
+        return true;
+    }
+
+    function setupEventListeners() {
+        btnRequestPerms.addEventListener('click', () => showModal('modal-permissions'));
+        btnGrantPerms.addEventListener('click', handlePermissionRequest);
+        btnDenyPerms.addEventListener('click', handlePermissionDenial);
+        btnCalibrationDone.addEventListener('click', handleCalibrationDone);
+
+        btnAddRoom.addEventListener('click', startRoomDefinition);
+        btnConfirmRoomName.addEventListener('click', confirmRoomName);
+        btnCancelRoomName.addEventListener('click', cancelRoomDefinition);
+        btnSetCorner1.addEventListener('click', setCorner1);
+        btnSetCorner2.addEventListener('click', setCorner2);
+        btnCancelDefine.addEventListener('click', cancelRoomDefinition);
+         btnCancelPlaceRoom.addEventListener('click', cancelRoomPlacement);
+
+
+        btnStartTracking.addEventListener('click', startTracking);
+        btnStopTracking.addEventListener('click', stopTracking);
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Map Interaction (Basic Panning)
+        mapCanvas.addEventListener('mousedown', handlePanStart);
+        mapCanvas.addEventListener('mousemove', handlePanMove);
+        mapCanvas.addEventListener('mouseup', handlePanEnd);
+        mapCanvas.addEventListener('mouseleave', handlePanEnd);
+         // Map Click for Placing Room
+         mapCanvas.addEventListener('click', handleMapClickForPlacement);
+
+         // Room List Interaction
+         roomListUl.addEventListener('click', handleRoomListClick);
+    }
+
+    // --- State Management ---
+    function setState(newState) {
+        console.log(`State changing from ${state} to ${newState}`);
+        state = newState;
+        updateUI();
+    }
+
+    function updateUI() {
+        // Disable everything by default
+        const allButtons = document.querySelectorAll('#top-panel button');
+        allButtons.forEach(btn => btn.disabled = true);
+        mapCanvas.classList.remove('placing');
+
+
+        // Enable based on state
+        switch (state) {
+            case 'no_perms':
+                btnRequestPerms.disabled = false;
+                setStatus('Натисніть "Дозволи", щоб почати.', 'info');
+                break;
+            case 'idle':
+                btnAddRoom.disabled = false;
+                if (rooms.length > 0) btnStartTracking.disabled = false;
+                setStatus('Готово. Додайте кімнату або почніть відстеження.');
+                break;
+            case 'defining_room_name':
+                // Modal is active, no buttons needed here
+                setStatus('Введіть назву для нової кімнати.');
+                break;
+            case 'defining_corner1':
+                btnSetCorner1.disabled = false;
+                btnCancelDefine.disabled = false;
+                setStatus(`Кімната "${currentRoomDefinition?.name}": Встаньте в перший кут та натисніть "Кут 1".`);
+                break;
+            case 'defining_corner2':
+                btnSetCorner2.disabled = false;
+                btnCancelDefine.disabled = false;
+                setStatus(`Кімната "${currentRoomDefinition?.name}": Перейдіть до протилежного кута та натисніть "Кут 2".`);
+                break;
+            case 'placing_room':
+                 // Modal active, potentially allow cancel
+                 btnCancelPlaceRoom.disabled = false; // Enable cancel within modal
+                 mapCanvas.classList.add('placing');
+                 setStatus(`Розмістіть кімнату "${currentRoomDefinition?.name}" на карті кліком.`);
+                 break;
+            case 'mapping': // General state when viewing/interacting with map but not tracking
+                btnAddRoom.disabled = false;
+                 if (rooms.length > 0) btnStartTracking.disabled = false;
+                 // Add map interaction buttons here later (zoom, drag room)
+                setStatus('Карта готова. Можна додати ще кімнату або почати відстеження.');
+                break;
+            case 'tracking':
+                btnStopTracking.disabled = false;
+                userArrow.style.display = 'block';
+                // Disable adding rooms while tracking
+                 setStatus(`Відстеження в кімнаті: ${getRoomById(activeTrackingRoomId)?.name || 'Невідомо'}. Кроків: ${stepCounter}`);
+                break;
+            case 'initializing':
+            case 'error':
+                // Status set elsewhere
+                break;
+        }
+         // Update Room List Panel
+         roomListPanel.style.display = rooms.length > 0 ? 'block' : 'none';
+         updateRoomList();
+    }
+
+    function setStatus(message, type = 'normal') { // type: normal, info, success, error
+        statusBar.textContent = message;
+        statusBar.className = 'status-bar'; // Reset classes
+        if (type === 'error') {
+            statusBar.classList.add('error');
+            console.error("Status (Error):", message);
+        } else if (type === 'success') {
+            statusBar.classList.add('success');
+            console.log("Status (Success):", message);
+        } else if (type === 'info') {
+            statusBar.classList.add('info');
+            console.log("Status (Info):", message);
+        } else {
+             console.log("Status:", message);
+        }
+    }
+
+    function showModal(modalId, active = true) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.toggle('active', active);
+        }
+    }
+
+    // --- Permissions ---
+    async function handlePermissionRequest() {
+        console.log("Requesting sensor permissions...");
+        showModal('modal-permissions', false); // Hide prompt
+        setStatus('Запит дозволів...', 'info');
+
+        try {
+            let motionGranted = false;
+            // Request DeviceMotionEvent permission (primarily for iOS)
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                const motionPermission = await DeviceMotionEvent.requestPermission();
+                motionGranted = motionPermission === 'granted';
+                 console.log("DeviceMotionEvent permission:", motionPermission);
             } else {
-                 // Complete but no width likely means error state already handled by onerror,
-                 // or it's a 0x0 image.
-                 console.warn("Map image reported complete but has zero natural width.");
-                 if (!mapImage.onerror) { // If onerror didn't fire for some reason
-                      loadingIndicator.textContent = "Помилка: Не вдалося отримати розміри карти.";
-                      loadingIndicator.style.display = 'block';
-                 }
+                // Assume granted or not needed if API doesn't exist/require it
+                console.log("DeviceMotionEvent.requestPermission not available/needed.");
+                motionGranted = true; // Or check if the event listener works later
             }
 
-
-            // Window resize and orientation change
-            window.addEventListener('resize', debouncedUpdatePositions);
-            window.addEventListener('orientationchange', debouncedUpdatePositions);
-
-            // Permission button
-            grantButton.addEventListener('click', requestOrientationPermission);
-
-            // --- Permission Handling ---
-            function requestOrientationPermission() {
-                permissionPrompt.style.display = 'none'; // Hide prompt
-
-                // 1. iOS / iPadOS specific permission request
-                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    console.log("Requesting iOS orientation permission...");
-                    DeviceOrientationEvent.requestPermission()
-                        .then(permissionState => {
-                            console.log("iOS Permission state:", permissionState);
-                            if (permissionState === 'granted') {
-                                orientationPermissionGranted = true;
-                                addOrientationListeners();
-                                // Delay showing arrow slightly until first orientation event?
-                                // arrow.style.visibility = 'visible';
-                                updateDebugInfo();
-                            } else {
-                                orientationPermissionGranted = false;
-                                alert('Доступ до орієнтації відхилено. Стрілка напрямку не працюватиме.');
-                                updateDebugInfo("Доступ до орієнтації відхилено");
-                            }
-                        })
-                        .catch(error => {
-                            console.error("Error requesting iOS orientation permission:", error);
-                            orientationPermissionGranted = false;
-                            alert('Сталася помилка при запиті доступу до орієнтації.');
-                            updateDebugInfo("Помилка запиту доступу");
-                        });
-                } else {
-                    // 2. Standard approach (Android, other non-iOS browsers)
-                    console.log("Adding standard orientation listeners (non-iOS/iPadOS).");
-                    // We assume permission is implicitly granted or not needed to ask for non-iOS.
-                    // The browser might still block it silently if permissions were denied previously.
-                    orientationPermissionGranted = true;
-                    addOrientationListeners();
-                    // arrow.style.visibility = 'visible'; // Delay showing arrow slightly?
-                    updateDebugInfo();
-                }
+            let orientationGranted = false;
+            // Request DeviceOrientationEvent permission (primarily for iOS)
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                const orientationPermission = await DeviceOrientationEvent.requestPermission();
+                orientationGranted = orientationPermission === 'granted';
+                 console.log("DeviceOrientationEvent permission:", orientationPermission);
+            } else {
+                console.log("DeviceOrientationEvent.requestPermission not available/needed.");
+                orientationGranted = true;
             }
 
-            function addOrientationListeners() {
-                if (!window.DeviceOrientationEvent) {
-                     console.error("DeviceOrientationEvent not supported by this browser.");
-                     updateDebugInfo("Подія DeviceOrientation не підтримується");
-                     orientationPermissionGranted = false;
-                     return;
-                }
-                console.log("Adding orientation event listeners...");
-                // Add listeners with 'true' for capture phase might sometimes help, but default is usually fine.
-                window.addEventListener('deviceorientationabsolute', handleOrientation);
-                window.addEventListener('deviceorientation', handleOrientationFallback);
+            if (motionGranted && orientationGranted) {
+                permissionsGranted = true;
+                setStatus('Дозволи надано!', 'success');
+                setState('idle'); // Move to idle state, ready to add rooms/track
+            } else {
+                handlePermissionDenial();
             }
+        } catch (error) {
+            console.error("Error requesting permissions:", error);
+            setStatus(`Помилка запиту дозволів: ${error.message}`, true);
+            permissionsGranted = false;
+            setState('no_perms'); // Stay in no_perms state
+        }
+    }
 
-            // Initial check: Determine if we need to prompt the user (iOS) or can just try (Android)
-            function initializeOrientationCheck() {
-                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    // iOS: Must prompt on user interaction. Show the modal.
-                     permissionPrompt.style.display = 'block';
-                     updateDebugInfo("Очікування дозволу...");
-                } else if (typeof DeviceOrientationEvent !== 'undefined') {
-                    // Android/Other: Try to add listeners directly. No modal needed initially.
-                     console.log("Attempting to initialize orientation directly (non-iOS path).")
-                     requestOrientationPermission();
-                } else {
-                    // No support at all
-                    alert("На жаль, датчики орієнтації не підтримуються цим пристроєм або браузером.");
-                    updateDebugInfo("Датчики орієнтації недоступні");
-                    orientationPermissionGranted = false;
-                }
-            }
+    function handlePermissionDenial() {
+        showModal('modal-permissions', false);
+        setStatus('Дозволи не надано. Функціональність обмежена.', true);
+        permissionsGranted = false;
+        setState('no_perms'); // Stay in no_perms state
+    }
+
+    // --- Calibration ---
+    function showCalibrationIfNeeded() {
+        if (needsCalibrationCheck) {
+            showModal('modal-calibration', true);
+            needsCalibrationCheck = false; // Show only once per session
+            return true; // Indicated that calibration was shown
+        }
+        return false; // Calibration not needed/already done
+    }
+
+    function handleCalibrationDone() {
+        showModal('modal-calibration', false);
+        // Proceed with whatever action required calibration (e.g., start tracking)
+        if (state === 'tracking_pending') { // Use a temporary state if needed
+             startActualTracking();
+         }
+    }
+
+    // --- Room Definition ---
+    function startRoomDefinition() {
+        if (!permissionsGranted) {
+             setStatus('Спочатку надайте дозволи на сенсори!', true);
+             showModal('modal-permissions');
+             return;
+         }
+        currentRoomDefinition = { name: '', corner1: null, corner2: null };
+        inputRoomName.value = ''; // Clear previous name
+        showModal('modal-room-name', true);
+        setState('defining_room_name');
+    }
+
+    function confirmRoomName() {
+        const name = inputRoomName.value.trim();
+        if (!name) {
+            alert("Будь ласка, введіть назву кімнати.");
+            return;
+        }
+        currentRoomDefinition.name = name;
+        showModal('modal-room-name', false);
+        setState('defining_corner1');
+    }
+
+    function setCorner1() {
+        // In a real system, we'd record sensor data here.
+        // For this prototype, we just mark it as set.
+        currentRoomDefinition.corner1 = { x: 0, y: 0 }; // Placeholder coordinates
+        console.log("Corner 1 set (symbolic)");
+        setState('defining_corner2');
+    }
+
+    function setCorner2() {
+        // Mark as set. Calculation happens in saveRoom.
+        currentRoomDefinition.corner2 = { x: 1, y: 1 }; // Placeholder different from corner1
+        console.log("Corner 2 set (symbolic)");
+        saveRoomDefinition();
+    }
+
+     function saveRoomDefinition() {
+         if (!currentRoomDefinition || !currentRoomDefinition.corner1 || !currentRoomDefinition.corner2) {
+             console.error("Cannot save room, definition incomplete.");
+             cancelRoomDefinition(); // Go back to safety
+             return;
+         }
+
+         // VERY basic estimation of size. In reality, need step counting
+         // between corners or user input. Using default for now.
+         const newRoom = {
+             id: `room_${Date.now()}`,
+             name: currentRoomDefinition.name,
+             corners: [currentRoomDefinition.corner1, currentRoomDefinition.corner2],
+             // mapRect will be set when placing the room
+             mapRect: { x: 0, y: 0, w: DEFAULT_ROOM_SIZE.w, h: DEFAULT_ROOM_SIZE.h },
+             color: `hsl(${Math.random() * 360}, 70%, 80%)` // Random light color
+         };
+
+         // Don't add to rooms array yet, wait for placement
+         console.log("Room definition complete:", newRoom);
+         placeRoomNameSpan.textContent = newRoom.name;
+         showModal('modal-place-room', true);
+         setState('placing_room');
+     }
 
 
-            // --- Sensor Event Handlers ---
-            let firstOrientationUpdate = true;
-            function handleOrientation(event) {
-                if (!orientationPermissionGranted) return;
-                // Prefer absolute orientation (compass)
-                if (event.absolute === true && typeof event.alpha === 'number') {
-                    processOrientationData(event.alpha);
-                    if (orientationFallbackUsed) {
-                         console.log("Switched back to deviceorientationabsolute");
-                         orientationFallbackUsed = false;
-                    }
-                } else if (!orientationFallbackUsed) {
-                     // Let fallback handle it if absolute isn't working reliably
-                }
-            }
+     function handleMapClickForPlacement(event) {
+          if (state !== 'placing_room' || !currentRoomDefinition) return;
 
-            function handleOrientationFallback(event) {
-                 if (!orientationPermissionGranted) return;
-                // Use relative orientation only if absolute isn't firing or isn't absolute
-                const absoluteSupported = 'absolute' in event;
-                if (typeof event.alpha === 'number' && (!absoluteSupported || !event.absolute)) {
-                    if (!orientationFallbackUsed) {
-                        console.warn("Using fallback 'deviceorientation'. May be relative to start orientation.");
-                        orientationFallbackUsed = true;
-                    }
-                    // Check for webkitCompassHeading (older Safari)
-                    const heading = event.webkitCompassHeading !== undefined ? event.webkitCompassHeading : event.alpha;
-                     if (typeof heading === 'number') {
-                         processOrientationData(heading);
-                     } else {
-                          // Avoid logging repeatedly if fallback value is consistently bad
-                          if (orientationFallbackUsed) console.warn("Fallback orientation alpha/heading is not a number.");
-                     }
-                }
-            }
+          const rect = mapCanvas.getBoundingClientRect();
+          // Calculate click position relative to canvas origin, considering map panning
+          const clickX = event.clientX - rect.left - mapOffset.x;
+          const clickY = event.clientY - rect.top - mapOffset.y;
 
-            function processOrientationData(alpha) {
-                let heading = alpha;
+           console.log(`Placing room at map coordinates: (${clickX.toFixed(0)}, ${clickY.toFixed(0)})`);
 
-                // Simple screen orientation adjustment (might need refinement for edge cases)
-                const screenOrientation = window.orientation || (screen.orientation ? screen.orientation.angle : 0) || 0;
-                // Adjust heading based on landscape mode if needed
-                if (Math.abs(screenOrientation) === 90) {
-                     heading = (heading + screenOrientation + 360) % 360;
-                }
+           // Create the final room object
+           const newRoom = {
+                id: `room_${Date.now()}`,
+                name: currentRoomDefinition.name,
+                corners: [currentRoomDefinition.corner1, currentRoomDefinition.corner2], // Keep original corner data if needed
+                mapRect: {
+                     x: clickX - DEFAULT_ROOM_SIZE.w / 2, // Center the room on click
+                     y: clickY - DEFAULT_ROOM_SIZE.h / 2,
+                     w: DEFAULT_ROOM_SIZE.w,
+                     h: DEFAULT_ROOM_SIZE.h
+                 },
+                 color: `hsl(${Math.random() * 360}, 60%, 85%)` // Random light color
+            };
 
-                // Apply manual offset and ensure value is 0-360
-                currentOrientation = (heading + compassOffset + 360) % 360;
-
-                 // Make arrow visible only after the first valid orientation reading
-                 if (firstOrientationUpdate && arrow.style.visibility !== 'visible') {
-                     arrow.style.visibility = 'visible';
-                     firstOrientationUpdate = false;
-                     console.log("First orientation update received, showing arrow.");
-                 }
+           rooms.push(newRoom);
+           console.log("Room added to map:", newRoom);
+           currentRoomDefinition = null; // Clear definition object
+           showModal('modal-place-room', false);
+           drawMap(); // Redraw map with the new room
+           setState('mapping'); // Or 'idle' if preferred after adding
+      }
 
 
-                updateArrowRotation(); // Update visual rotation
-                updateDebugInfo();     // Update status text
-            }
+    function cancelRoomDefinition() {
+        currentRoomDefinition = null;
+        showModal('modal-room-name', false); // Ensure all modals closed
+        showModal('modal-place-room', false);
+        console.log("Room definition cancelled.");
+        setState(rooms.length > 0 ? 'mapping' : 'idle'); // Go back to appropriate state
+    }
 
-            // --- UI Update Functions ---
-            function updateArrowRotation() {
-                // Update happens in processOrientationData after calculation now
-                 if (!mapLoaded || !orientationPermissionGranted || firstOrientationUpdate) return; // Don't rotate if not ready or hidden
-                 arrow.style.transform = `translate(-50%, -100%) rotate(${currentOrientation}deg)`;
-            }
+     function cancelRoomPlacement() {
+          // Room definition is complete, but user cancelled placement
+          showModal('modal-place-room', false);
+          console.log("Room placement cancelled. Definition kept:", currentRoomDefinition);
+           // What to do here? Could keep currentRoomDefinition and allow placing later,
+           // or discard it. Let's discard for simplicity now.
+           currentRoomDefinition = null;
+           setState(rooms.length > 0 ? 'mapping' : 'idle');
+     }
 
-            function updateArrowPosition() {
-                if (!mapLoaded || !mapRect) return; // Check mapRect too
-                const arrowX = mapRect.left + (mapRect.width * currentUserPosition.xPercent / 100);
-                const arrowY = mapRect.top + (mapRect.height * currentUserPosition.yPercent / 100);
-                arrow.style.left = `${arrowX}px`;
-                arrow.style.top = `${arrowY}px`;
-            }
+    // --- Tracking ---
+    function startTracking() {
+         if (rooms.length === 0) {
+              setStatus("Немає кімнат для відстеження. Спочатку додайте кімнату.", true);
+              return;
+          }
 
-            function updateRoomHighlighting() {
-                if (!mapLoaded || !mapRect) return;
+          // If only one room, select it automatically. Otherwise, user needs to select.
+          if (rooms.length === 1) {
+              setActiveTrackingRoom(rooms[0].id);
+               proceedToTracking();
+          } else {
+              // User must select a room from the list
+               setStatus("Виберіть кімнату зі списку праворуч, щоб почати відстеження.", 'info');
+               // Highlight the room list or show a specific prompt?
+           }
+     }
 
-                const smallerDim = Math.min(mapRect.width, mapRect.height);
-                if (smallerDim <= 0) return; // Avoid division by zero or negative thresholds
+     function setActiveTrackingRoom(roomId) {
+          const room = getRoomById(roomId);
+          if (!room) {
+               console.error(`Cannot set active room: ID ${roomId} not found.`);
+               return false;
+          }
+          activeTrackingRoomId = roomId;
+          console.log(`Active tracking room set to: ${room.name} (ID: ${roomId})`);
+           // Reset user position relative to the center of the *new* active room
+           userPosition.x = room.mapRect.x + room.mapRect.w / 2;
+           userPosition.y = room.mapRect.y + room.mapRect.h / 2;
+           stepCounter = 0; // Reset step count for the new room
+           updateRoomList(); // Update highlighting
+           return true;
+     }
 
-                const thresholdPixels = smallerDim * proximityThresholdPercent / 100;
-                const thresholdSq = thresholdPixels * thresholdPixels;
+      function proceedToTracking() {
+           if (!activeTrackingRoomId) {
+                setStatus("Кімнату для відстеження не вибрано.", true);
+                return;
+           }
 
-                const userPixelX = mapRect.width * currentUserPosition.xPercent / 100;
-                const userPixelY = mapRect.height * currentUserPosition.yPercent / 100;
+           // Check calibration status
+           if (showCalibrationIfNeeded()) {
+                setState('tracking_pending'); // Temporary state while calibrating
+                return;
+           }
+            startActualTracking();
+      }
 
-                let closestRoom = null;
-                let minDistanceSq = Infinity;
 
-                rooms.forEach(room => {
-                    const roomPixelX = mapRect.width * room.xPercent / 100;
-                    const roomPixelY = mapRect.height * room.yPercent / 100;
+     function startActualTracking() {
+          console.log("Starting actual tracking process...");
+          if (!activeTrackingRoomId) {
+               console.error("Cannot start tracking, no active room ID.");
+               return; // Should not happen if logic is correct
+           }
+           setState('tracking');
+           startSensors(); // Start sensors
+           requestAnimationFrame(gameLoop); // Start the drawing/update loop
+           console.log("Tracking loop started.");
+     }
 
-                    const dx = userPixelX - roomPixelX;
-                    const dy = userPixelY - roomPixelY;
-                    const distanceSq = (dx * dx) + (dy * dy);
 
-                    if (distanceSq < thresholdSq && distanceSq < minDistanceSq) {
-                        minDistanceSq = distanceSq;
-                        closestRoom = room;
-                    }
-                    // Remove highlight from all rooms efficiently
-                    if (room.element.classList.contains('highlighted')) {
-                         room.element.classList.remove('highlighted');
-                    }
-                });
+    function stopTracking() {
+        stopSensors();
+        userArrow.style.display = 'none';
+         // Keep activeTrackingRoomId for context maybe? Or clear it? Let's keep it for now.
+         // activeTrackingRoomId = null;
+        setState(rooms.length > 0 ? 'mapping' : 'idle');
+        setStatus('Відстеження зупинено.');
+         drawMap(); // Redraw map without the arrow potentially moving
+    }
 
-                // Highlight only the single closest room within the threshold
-                if (closestRoom) {
-                    closestRoom.element.classList.add('highlighted');
-                }
-            }
+    function startSensors() {
+        console.log("Attempting to start sensors...");
+        try {
+            stopSensors(); // Ensure clean start
 
-            function updateDebugInfo(overrideMessage = null) {
-                if (overrideMessage) {
-                    debugInfo.textContent = overrideMessage;
+            // Prefer Generic Sensor API
+            if ('Accelerometer' in window && 'AbsoluteOrientationSensor' in window) {
+                try {
+                    console.log("Using Generic Sensor API.");
+                    motionSensor = new Accelerometer({ frequency: SENSOR_FREQUENCY });
+                    motionSensor.addEventListener('reading', handleMotion);
+                    motionSensor.addEventListener('error', handleSensorError);
+                    motionSensor.start();
+
+                    orientationSensor = new AbsoluteOrientationSensor({ frequency: SENSOR_FREQUENCY, referenceFrame: 'screen' });
+                    orientationSensor.addEventListener('reading', handleOrientation);
+                    orientationSensor.addEventListener('error', handleSensorError);
+                    orientationSensor.start();
+                    console.log("Generic Sensors started.");
                     return;
+                } catch (err) {
+                    console.warn("Generic Sensor API failed, falling back.", err.name, err.message);
                 }
-                 let status = "";
-                 if (!mapLoaded) {
-                     status = "Завантаження...";
-                 } else {
-                     status = `Поз (симуляція): ${currentUserPosition.xPercent.toFixed(0)}%, ${currentUserPosition.yPercent.toFixed(0)}%`;
-                     if (orientationPermissionGranted) {
-                         status += ` | Орієнт: ${currentOrientation.toFixed(0)}° ${orientationFallbackUsed ? '(Відносн.)' : '(Абсолют.)'}`;
-                     } else {
-                         status += " | Орієнт: Немає доступу";
-                     }
-                 }
-                 debugInfo.textContent = status;
             }
 
-            // --- Keyboard Controls for Simulation (Desktop Testing) ---
-            document.addEventListener('keydown', (e) => {
-                if (!mapLoaded) return; // Don't allow control if map isn't ready
+            // Fallback to older events
+            if ('DeviceMotionEvent' in window && 'DeviceOrientationEvent' in window) {
+                console.log("Using fallback DeviceMotionEvent/OrientationEvent.");
+                window.addEventListener('devicemotion', handleDeviceMotionEvent);
+                window.addEventListener('deviceorientation', handleDeviceOrientationEvent);
+                 console.log("Fallback listeners added.");
+            } else {
+                throw new Error("Сенсори руху/орієнтації не підтримуються.");
+            }
+        } catch (error) {
+            console.error("Fatal Sensor start error:", error);
+            setStatus(`Помилка запуску сенсорів: ${error.message}`, true);
+            setState('error'); // Or back to idle/mapping?
+        }
+    }
 
-                const step = 1.5; // Percentage step for movement
-                const rotStep = 5; // Degrees step for rotation
-                let moved = false;
-                let rotated = false;
+    function stopSensors() {
+        console.log("Stopping sensors...");
+        if (motionSensor) { motionSensor.stop(); motionSensor = null; }
+        if (orientationSensor) { orientationSensor.stop(); orientationSensor = null; }
+        window.removeEventListener('devicemotion', handleDeviceMotionEvent);
+        window.removeEventListener('deviceorientation', handleDeviceOrientationEvent);
+         clearTimeout(stepCooldownTimeout); // Clear any pending cooldown
+         stepCooldownTimeout = null;
+         console.log("Sensors stopped.");
+    }
 
-                 // Check if focus is on an input element, if any existed - ignore keys then
-                 // if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+    function handleSensorError(event) {
+        console.error('Sensor Error:', event.error.name, event.error.message);
+        // Maybe show a non-fatal error in status bar?
+        setStatus(`Помилка сенсора: ${event.error.name}`, true);
+    }
 
-                switch (e.key) {
-                    // Movement (WASD + Arrows)
-                    case 'ArrowUp':    case 'w': case 'W': case 'ö': case 'Ö': currentUserPosition.yPercent -= step; moved = true; break; // Added ö/Ö for ukrainian layout Ц
-                    case 'ArrowDown':  case 's': case 'S': case 'і': case 'І': currentUserPosition.yPercent += step; moved = true; break; // Added і/І for ukrainian layout І
-                    case 'ArrowLeft':  case 'a': case 'A': case 'ô': case 'Ô': currentUserPosition.xPercent -= step; moved = true; break; // Added ô/Ô for ukrainian layout Ф
-                    case 'ArrowRight': case 'd': case 'D': case 'â': case 'Â': currentUserPosition.xPercent += step; moved = true; break; // Added â/Â for ukrainian layout В
+    // --- Sensor Data Processing ---
+    function handleMotion() { // Generic Sensor
+        if (state !== 'tracking' || !motionSensor?.timestamp) return;
+        const mag = Math.sqrt(motionSensor.x**2 + motionSensor.y**2 + motionSensor.z**2);
+        processStepDetection(mag);
+    }
+    function handleDeviceMotionEvent(event) { // Fallback
+        if (state !== 'tracking') return;
+        const acc = event.accelerationIncludingGravity;
+        if (!acc?.x) return;
+        const mag = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
+        processStepDetection(mag);
+    }
 
-                    // Rotation Simulation (Comma/Period or Q/E)
-                    case ',': case '<': case 'q': case 'Q': case 'é': case 'É': currentOrientation = (currentOrientation - rotStep + 360) % 360; rotated = true; break; // Added é/É for ukrainian layout Й
-                    case '.': case '>': case 'e': case 'E': case 'ó': case 'Ó': currentOrientation = (currentOrientation + rotStep) % 360; rotated = true; break; // Added ó/Ó for ukrainian layout У
-                }
+    function handleOrientation() { // Generic Sensor
+        if (state !== 'tracking' || !orientationSensor?.quaternion) return;
+        const q = orientationSensor.quaternion;
+        const siny_cosp = 2 * (q[3] * q[2] + q[0] * q[1]);
+        const cosy_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2]);
+        let yaw = Math.atan2(siny_cosp, cosy_cosp);
+        userOrientation = (yaw * (180 / Math.PI) + 360) % 360;
+    }
+    function handleDeviceOrientationEvent(event) { // Fallback
+        if (state !== 'tracking' || event.alpha === null) return;
+        userOrientation = event.alpha; // Use alpha directly, calibration is vital
+    }
+
+    function processStepDetection(currentMagnitude) {
+        if (stepCooldownTimeout) return;
+        const diff = Math.abs(currentMagnitude - (lastAccMagnitude || currentMagnitude));
+        if (diff > STEP_THRESHOLD && lastAccMagnitude !== 0) {
+            takeStep();
+            stepCooldownTimeout = setTimeout(() => { stepCooldownTimeout = null; }, STEP_COOLDOWN);
+        }
+        lastAccMagnitude = currentMagnitude;
+    }
+
+    function takeStep() {
+        if (state !== 'tracking' || !activeTrackingRoomId) return;
+
+        stepCounter++;
+        const rad = userOrientation * Math.PI / 180;
+        const deltaX = Math.sin(rad) * STEP_SIZE_PIXELS;
+        const deltaY = -Math.cos(rad) * STEP_SIZE_PIXELS; // Y is inverted in canvas
+
+        userPosition.x += deltaX;
+        userPosition.y += deltaY;
+
+        // Boundary check (optional: keep within active room bounds?)
+        const room = getRoomById(activeTrackingRoomId);
+        if (room) {
+             userPosition.x = Math.max(room.mapRect.x, Math.min(room.mapRect.x + room.mapRect.w, userPosition.x));
+             userPosition.y = Math.max(room.mapRect.y, Math.min(room.mapRect.y + room.mapRect.h, userPosition.y));
+        }
+
+        // Update status bar less frequently?
+         setStatus(`Відстеження в кімнаті: ${getRoomById(activeTrackingRoomId)?.name || 'Невідомо'}. Кроків: ${stepCounter}`);
+        // Redrawing happens in gameLoop
+    }
+
+    // --- Drawing ---
+    function gameLoop(timestamp) {
+        if (state !== 'tracking') return; // Stop loop if not tracking
+
+        // Update logic could go here if needed based on time
+
+        drawMap(); // Redraw background and rooms
+        drawUserArrow(); // Draw the user arrow
+
+        requestAnimationFrame(gameLoop); // Continue the loop
+    }
+
+    function drawMap() {
+        if (!ctx) return;
+        // Clear canvas
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--map-bg').trim();
+        ctx.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
+
+        // Apply map panning offset
+        ctx.save();
+        ctx.translate(mapOffset.x, mapOffset.y);
+
+        // Draw all rooms
+        rooms.forEach(room => {
+            ctx.fillStyle = (room.id === activeTrackingRoomId && state === 'tracking') ?
+                            getComputedStyle(document.documentElement).getPropertyValue('--current-room-fill').trim() :
+                            room.color; // Use stored color or default fill
+            ctx.strokeStyle = (room.id === activeTrackingRoomId && state === 'tracking') ?
+                            getComputedStyle(document.documentElement).getPropertyValue('--current-room-border').trim() :
+                            getComputedStyle(document.documentElement).getPropertyValue('--room-border').trim();
+            ctx.lineWidth = (room.id === activeTrackingRoomId && state === 'tracking') ? 3 : 2;
+
+            ctx.fillRect(room.mapRect.x, room.mapRect.y, room.mapRect.w, room.mapRect.h);
+            ctx.strokeRect(room.mapRect.x, room.mapRect.y, room.mapRect.w, room.mapRect.h);
+
+            // Draw room name
+            ctx.fillStyle = var(--text-color);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 12px ' + var(--font-main);
+            ctx.fillText(room.name, room.mapRect.x + room.mapRect.w / 2, room.mapRect.y + room.mapRect.h / 2);
+        });
+
+        // Restore transform
+        ctx.restore();
+    }
+
+    function drawUserArrow() {
+        if (state !== 'tracking' || !activeTrackingRoomId) {
+            userArrow.style.display = 'none';
+            return;
+        }
+
+        // Calculate arrow position relative to the viewport, including map panning
+        const arrowScreenX = userPosition.x + mapOffset.x;
+        const arrowScreenY = userPosition.y + mapOffset.y;
+
+        // Arrow's own dimensions for centering offset
+        const arrowWidth = 18; // Corresponds to border-left + border-right (9+9)
+        const arrowHeight = 18; // Corresponds to border-bottom
+
+        userArrow.style.left = `${arrowScreenX - arrowWidth / 2}px`;
+        userArrow.style.top = `${arrowScreenY - arrowHeight}px`; // Offset by height to rotate around bottom point
+        userArrow.style.transform = `rotate(${userOrientation}deg)`;
+        userArrow.style.display = 'block';
+    }
+
+    // --- Canvas Resizing ---
+    function resizeCanvas() {
+         // Make canvas fill the container
+         const containerWidth = mainContent.clientWidth;
+         const containerHeight = mainContent.clientHeight;
+         mapCanvas.width = containerWidth;
+         mapCanvas.height = containerHeight;
+         console.log(`Canvas resized to ${mapCanvas.width}x${mapCanvas.height}`);
+         // Redraw map after resize
+         drawMap();
+         if (state === 'tracking') {
+             drawUserArrow(); // Reposition arrow if tracking
+         }
+     }
+
+    // --- Map Interaction ---
+    function handlePanStart(event) {
+        if (state === 'placing_room') return; // Don't pan while placing
+        isPanning = true;
+        panStart.x = event.clientX - mapOffset.x;
+        panStart.y = event.clientY - mapOffset.y;
+        mapCanvas.classList.add('grabbing');
+    }
+
+    function handlePanMove(event) {
+        if (!isPanning) return;
+        mapOffset.x = event.clientX - panStart.x;
+        mapOffset.y = event.clientY - panStart.y;
+        // Redraw needed while panning
+        drawMap();
+         if (state === 'tracking') drawUserArrow(); // Keep arrow updated
+    }
+
+    function handlePanEnd() {
+        if (isPanning) {
+            isPanning = false;
+            mapCanvas.classList.remove('grabbing');
+        }
+    }
+
+     // --- Room List ---
+     function updateRoomList() {
+          roomListUl.innerHTML = ''; // Clear existing list
+          rooms.forEach(room => {
+               const li = document.createElement('li');
+               li.textContent = room.name;
+               li.dataset.roomId = room.id; // Store room ID for click handling
+               if (room.id === activeTrackingRoomId) {
+                    li.classList.add('active-tracking-room');
+               }
+               roomListUl.appendChild(li);
+          });
+     }
+
+      function handleRoomListClick(event) {
+           if (event.target.tagName === 'LI' && event.target.dataset.roomId) {
+                const roomId = event.target.dataset.roomId;
+                if (state === 'tracking') {
+                     // Allow switching rooms while tracking? Could be complex.
+                     // For now, let's require stopping first.
+                     setStatus(`Щоб змінити кімнату, зупиніть відстеження.`, 'info');
+                 } else {
+                     // Set as the room to start tracking in next time
+                      if (setActiveTrackingRoom(roomId)) {
+                          setStatus(`Наступне відстеження почнеться в кімнаті: ${getRoomById(roomId)?.name}. Натисніть 'Відстеження'.`, 'success');
+                           // Optionally pan map to center this room?
+                      }
+                 }
+            }
+       }
+
+       function getRoomById(id) {
+            return rooms.find(room => room.id === id);
+       }
 
 
-                if (moved) {
-                    // Clamp position to map bounds (0-100%)
-                    currentUserPosition.xPercent = Math.max(0, Math.min(100, currentUserPosition.xPercent));
-                    currentUserPosition.yPercent = Math.max(0, Math.min(100, currentUserPosition.yPercent));
-                    updateArrowPosition();
-                    updateRoomHighlighting();
-                }
-                 // Update rotation only if orientation sensors are NOT active/granted
-                 // OR if specifically triggered by rotation keys
-                if (rotated && !orientationPermissionGranted) { // Allow keyboard rotation override only if sensors off
-                    updateArrowRotation();
-                } else if (rotated && orientationPermissionGranted){
-                     // If sensors are ON, keyboard rotation only updates the debug value,
-                     // the actual arrow follows the sensor. Could potentially add an override toggle?
-                     console.log("Keyboard rotation attempted while sensors active - ignored for arrow display.");
-                }
+    // --- Start App ---
+    document.addEventListener('DOMContentLoaded', init);
 
-                if (moved || rotated) {
-                    updateDebugInfo(); // Update debug after any change
-                }
-            });
+</script>
 
-            // --- Initial Setup Calls ---
-            updateDebugInfo(); // Initial debug message
-            initializeOrientationCheck(); // Start permission check/setup process
-
-        }); // End DOMContentLoaded
-    </script>
 </body>
 </html>
