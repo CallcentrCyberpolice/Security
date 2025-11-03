@@ -3,99 +3,109 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Завантаження Перекладеного Доповнення</title>
+    <title>Завантаження Доповнення</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            background-color: #121212;
-            color: #E0E0E0;
-        }
-        .btn-download {
-            background-color: #4CAF50;
+        body { background-color: #121212; color: #E0E0E0; }
+        .btn {
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            padding: 1rem;
+            border-radius: 0.5rem;
             transition: background-color 0.3s ease, transform 0.2s ease;
+            text-decoration: none;
         }
-        .btn-download:hover {
-            background-color: #388E3C;
-        }
-        .btn-download:active {
-            transform: scale(0.98);
-        }
-        .btn-disabled {
-            background-color: #4A5568;
-            cursor: not-allowed;
-        }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background-color: #4F46E5; color: white; }
+        .btn-primary:hover { background-color: #4338CA; }
+        .btn-secondary { background-color: #4CAF50; color: white; }
+        .btn-secondary:hover { background-color: #388E3C; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
     <div id="container" class="w-full max-w-lg mx-auto bg-[#1E1E1E] rounded-2xl shadow-2xl p-8 text-center">
         
-        <div id="loading-state">
-            <h1 class="text-3xl font-bold text-white mb-4">Підготовка файлу...</h1>
-            <p class="text-gray-400 mb-6">Будь ласка, зачекайте, ми готуємо ваше посилання для завантаження.</p>
-            <div class="flex justify-center items-center">
-                <svg class="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            </div>
+        <!-- View 1: Prompt to open in external browser -->
+        <div id="open-browser-view" class="hidden">
+            <h1 class="text-3xl font-bold text-white mb-4">Майже готово!</h1>
+            <p class="text-gray-300 mb-6">Для коректного завантаження файлу, будь ласка, відкрийте цю сторінку у вашому основному браузері (наприклад, Chrome).</p>
+            <a id="open-browser-btn" href="#" class="btn btn-primary text-lg">
+                Відкрити в браузері
+            </a>
         </div>
 
-        <div id="success-state" class="hidden">
+        <!-- View 2: Download button -->
+        <div id="download-view" class="hidden">
             <h1 class="text-3xl font-bold text-green-400 mb-2">Ваш файл готовий!</h1>
             <p class="text-gray-300 mb-4">Натисніть кнопку нижче, щоб завантажити перекладений аддон.</p>
             <p id="filename" class="text-sm text-gray-400 bg-gray-900/50 rounded-md p-2 mb-6 font-mono break-all"></p>
-            <a id="download-btn" href="#" download="" class="inline-block w-full btn-download text-white font-bold py-4 px-6 rounded-lg text-lg">
+            <a id="download-btn" href="#" download="" class="btn btn-secondary text-lg">
                 Завантажити та повернутись в Telegram
             </a>
             <p class="text-xs text-gray-500 mt-4">Після натискання завантаження почнеться автоматично, і вас буде перенаправлено назад до Telegram.</p>
         </div>
 
+        <!-- View 3: Error state -->
         <div id="error-state" class="hidden">
             <h1 class="text-3xl font-bold text-red-400 mb-2">Помилка</h1>
             <p class="text-gray-300 mb-6">Не вдалося знайти інформацію про файл. Будь ласка, поверніться до додатку та спробуйте згенерувати посилання ще раз.</p>
-            <a href="https://t.me" class="inline-block w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg">
-                Повернутись в Telegram
-            </a>
         </div>
 
     </div>
 
     <script>
         window.onload = () => {
-            const container = document.getElementById('container');
-            const loadingState = document.getElementById('loading-state');
-            const successState = document.getElementById('success-state');
+            const openBrowserView = document.getElementById('open-browser-view');
+            const downloadView = document.getElementById('download-view');
             const errorState = document.getElementById('error-state');
+            
+            const openBrowserBtn = document.getElementById('open-browser-btn');
             const downloadBtn = document.getElementById('download-btn');
             const filenameEl = document.getElementById('filename');
 
             try {
                 const params = new URLSearchParams(window.location.search);
-                const blobUrl = params.get('url');
+                const fileUrl = params.get('url'); // This will now be a data: URL
                 const filename = params.get('filename');
+                const fromBrowser = params.get('from_browser');
 
-                if (blobUrl && filename && downloadBtn && filenameEl) {
+                if (!fileUrl || !filename) {
+                    throw new Error('URL parameters are missing.');
+                }
+                
+                if (fromBrowser) {
+                    // Show download view
+                    openBrowserView.classList.add('hidden');
+                    downloadView.classList.remove('hidden');
+
                     filenameEl.textContent = filename;
-                    downloadBtn.href = blobUrl;
+                    downloadBtn.href = fileUrl;
                     downloadBtn.download = filename;
 
                     downloadBtn.onclick = () => {
-                        // Невелика затримка, щоб гарантувати початок завантаження перед перенаправленням
+                        // Small delay to ensure download starts before redirecting.
                         setTimeout(() => {
-                            window.location.href = 'https://t.me';
+                            window.location.href = 'tg://'; // Deep link to open Telegram app
                         }, 500);
                     };
 
-                    loadingState.classList.add('hidden');
-                    successState.classList.remove('hidden');
-                    
                 } else {
-                    throw new Error('URL parameters are missing.');
+                    // Show "open in browser" view
+                    openBrowserView.classList.remove('hidden');
+                    downloadView.classList.add('hidden');
+
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('from_browser', 'true');
+                    openBrowserBtn.href = newUrl.toString();
                 }
+
             } catch (e) {
                 console.error(e);
-                loadingState.classList.add('hidden');
+                openBrowserView.classList.add('hidden');
+                downloadView.classList.add('hidden');
                 errorState.classList.remove('hidden');
             }
         };
